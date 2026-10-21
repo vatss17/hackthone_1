@@ -34,9 +34,9 @@ export const navigation: NavItem[] = [
   {
     id: "factory",
     label: "My Factory",
-    href: "/factory",
-    status: "planned",
-    description: "Company and factory profile, machinery, materials and capacity.",
+    href: "/factories",
+    status: "available",
+    description: "Register and manage your factories. Machinery, materials and capacity come later.",
   },
   {
     id: "products",

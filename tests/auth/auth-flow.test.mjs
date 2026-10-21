@@ -35,6 +35,18 @@ describe("manufacturer authentication (end to end)", { skip: !enabled }, () => {
     const session = await api.signIn(u.email, u.password);
     const org = await api.rpc(session.token, "create_organization", { p_name: `M13C1 TEST ${runId} auth` });
     assert.ok(org.ok, `could not create the test company: status ${org.status}`);
+    // The dashboard also needs an active factory (company -> factory -> dashboard).
+    const factory = await api.rest(session.token, "POST", "factories", {
+      body: {
+        organization_id: org.body,
+        name: `M13C1 TEST ${runId} plant`,
+        address_line1: "1 Test Road",
+        city: "Testville",
+        state: "Gujarat",
+        postal_code: "380001",
+      },
+    });
+    assert.ok(factory.ok, `could not create the test factory: status ${factory.status}`);
   });
   after(async () => {
     // Owners of active organizations cannot be deleted: archive their organizations first.

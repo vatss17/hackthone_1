@@ -1,7 +1,9 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireOrganization } from "@/lib/organization";
+import { listFactories } from "@/lib/factories";
 import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/section";
-import { EmptyState } from "@/components/empty-state";
 import { StatusBadge, type StatusKind } from "@/components/status-badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,6 +89,10 @@ const registeredOn = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", tim
 
 export default async function OverviewPage() {
   const { organization } = await requireOrganization();
+  // Journey: company -> at least one active factory -> dashboard. The factory pages never
+  // redirect back here, so archiving the last factory cannot loop.
+  const { active: factories } = await listFactories(organization.id);
+  if (factories.length === 0) redirect("/factories/new");
   return (
     <>
       <PageHeader
@@ -133,11 +139,24 @@ export default async function OverviewPage() {
         </ol>
       </Section>
 
-      <Section title="Your factory">
-        <EmptyState
-          title="No factory profile yet"
-          description="Factory onboarding is the next part of the platform to be built. Once it is available, you will describe your factory and products here. There is nothing to do for now."
-        />
+      <Section
+        title="Your factories"
+        aside={
+          <Link href="/factories" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+            Manage factories
+          </Link>
+        }
+      >
+        <ul className="divide-y rounded-md border bg-card">
+          {factories.map((f) => (
+            <li key={f.id} className="px-4 py-3 sm:px-5">
+              <h3 className="break-words text-[15px] font-semibold">{f.name}</h3>
+              <p className="break-words text-sm text-muted-foreground">
+                {f.city}, {f.state}
+              </p>
+            </li>
+          ))}
+        </ul>
       </Section>
 
       <Section

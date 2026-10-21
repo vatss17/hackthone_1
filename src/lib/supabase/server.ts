@@ -25,6 +25,15 @@ export const createClient = cache(async () => {
   const { url, publishableKey } = getSupabaseConfig();
 
   return createServerClient(url, publishableKey, {
+    global: {
+      // Next.js memoizes identical GET fetches within one request. After a Server Action
+      // writes data and redirects, the target page renders in the SAME request, so a read
+      // made earlier in the action (for example "how many factories are there?") would be
+      // replayed stale and the page would act on out-of-date data. Aborting-signal fetches
+      // are never memoized, and no-store keeps the data cache out of it too.
+      fetch: (input, init) =>
+        fetch(input, { ...init, cache: "no-store", signal: init?.signal ?? new AbortController().signal }),
+    },
     cookies: {
       getAll() {
         return requestCookies;

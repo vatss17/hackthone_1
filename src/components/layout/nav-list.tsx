@@ -17,7 +17,7 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
         <h2 className={groupLabel}>Workspace</h2>
         <ul className="flex flex-col gap-0.5">
           {availableNav.map((item) => {
-            const active = pathname === item.href;
+            const active = item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <li key={item.id}>
                 <Link

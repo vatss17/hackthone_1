@@ -2,7 +2,7 @@
 
 Working title. An export enablement platform for Indian manufacturers (initial focus: finished plastic products to the UAE).
 
-**Status: M1.3C.2 (company registration; not yet reviewed or committed).** Earlier: M1.2 design foundation, M1.3B database foundation. The app has a responsive shell, real email/password authentication on Supabase Auth, and a static Overview page behind sign-in. There is no onboarding, no business features and no AI integration yet. Only Overview is navigable; the other modules are listed as planned and are not links.
+**Status: M1.3C.3 (factory registration; not yet reviewed or committed).** Earlier: M1.2 design foundation, M1.3B database foundation. The app has a responsive shell, real email/password authentication on Supabase Auth, and a static Overview page behind sign-in. There is no onboarding, no business features and no AI integration yet. Only Overview is navigable; the other modules are listed as planned and are not links.
 
 ## Requirements
 
@@ -101,3 +101,21 @@ Note: a Next.js 16.4.2 development-mode bug breaks `cookies()` when a page re-re
 - **Production-build behaviour of the JavaScript path was not exercised in a real browser** (only the development server was). The production build is covered by HTTP-level end-to-end tests.
 - Company name and legal name cannot be edited in the UI yet (the database already lets owners update them).
 - An organization archived by an administrator is not specially handled in the UI yet.
+
+## Factory management (M1.3C.3)
+
+Journey: sign up, sign in, register the company, register the first factory, dashboard. A company with no active factory is sent to `/factories/new`; the factory pages never redirect back to the dashboard, so archiving the last factory cannot loop (the list shows an empty state with "Register a factory").
+
+- `/factories` lists active factories (archived ones are hidden; "Show archived" lists them read-only), `/factories/new` adds one, `/factories/[id]/edit` edits or archives one.
+- Fields: factory name, address line 1 (and optional line 2), city, state or union territory (36 options), 6-digit PIN code; country is fixed to India by the database.
+- Writes use the existing `factories` table and Row Level Security (owner-only). The company comes from the server-validated membership, never from the request; the insert and updates use only the columns granted to the API role; every update is scoped to the company and to active rows. Factories are never deleted: archiving sets `archived_at`, and the name becomes reusable.
+- Duplicate active names within a company are rejected by the database's unique index and shown as a field error.
+
+```bash
+npm run dev                 # terminal 1
+npm run test:factories      # terminal 2: unit + end-to-end tests (synthetic users, dev project only)
+```
+
+Notes:
+- The server Supabase client opts its fetches out of Next.js per-request memoization. Without that, a Server Action that reads, writes and redirects renders the target page in the same request and sees the pre-write data (it looped the first-factory step in a real browser).
+- Known limitations: only company owners can add or change factories (no other role exists yet); factories cannot be un-archived in the UI; capabilities, machinery and product data are not part of this step.

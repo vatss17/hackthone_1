@@ -157,3 +157,45 @@ describe("company registration (static)", () => {
     assert.match(read("src/app/(app)/layout.tsx"), /requireOrganization\(/);
   });
 });
+
+describe("factory management (static)", () => {
+  it("the application never hard-deletes any record", () => {
+    const hits = sourceFiles.filter((f) => /\.delete\(/.test(read(f)));
+    assert.deepEqual(hits, []);
+  });
+
+  it("factory actions take the company from the server, never from the form", () => {
+    const src = read("src/lib/actions/factory.ts");
+    assert.match(src, /requireOrganization\(\)/);
+    assert.match(src, /organization_id:\s*organization\.id/);
+    const reads = [...src.matchAll(/formData\.get\(\s*["']([^"']+)["']/g)].map((m) => m[1]);
+    assert.deepEqual([...new Set(reads)].sort(), ["addressLine1", "addressLine2", "city", "factoryName", "id", "postalCode", "state"]);
+    // every update and archive is scoped to the company and to active rows
+    for (const chunk of src.split(".update(").slice(1)) {
+      assert.match(chunk, /\.eq\("organization_id", organization\.id\)/);
+      assert.match(chunk, /\.is\("archived_at", null\)/);
+    }
+  });
+
+  it("the insert payload contains only the columns the database grants (no country, no created_by)", () => {
+    const src = read("src/lib/actions/factory.ts");
+    const insert = src.slice(src.indexOf(".insert("), src.indexOf("});", src.indexOf(".insert(")));
+    const keys = [...insert.matchAll(/^\s+([a-z_0-9]+):/gm)].map((m) => m[1]).sort();
+    assert.deepEqual(keys, ["address_line1", "address_line2", "city", "name", "organization_id", "postal_code", "state"]);
+  });
+
+  it("factory pages and the dashboard verify the company on the server", () => {
+    for (const f of ["src/app/(app)/factories/page.tsx", "src/app/(app)/factories/new/page.tsx", "src/app/(app)/factories/[id]/edit/page.tsx", "src/app/(app)/page.tsx"]) {
+      assert.match(read(f), /requireOrganization\(/, f);
+    }
+  });
+});
+
+describe("read-after-write safety (static)", () => {
+  it("the server Supabase client opts its fetches out of Next's per-request memoization", () => {
+    const src = read("src/lib/supabase/server.ts");
+    assert.match(src, /global:\s*\{[\s\S]*fetch:/);
+    assert.match(src, /cache:\s*"no-store"/);
+    assert.match(src, /signal:/);
+  });
+});

@@ -85,3 +85,51 @@ export function PasswordField({ name, label, error, hint, ...props }: FieldProps
     </div>
   );
 }
+
+type SelectFieldProps = Omit<React.ComponentProps<"select">, "id" | "name"> & {
+  name: string;
+  label: string;
+  options: readonly string[];
+  placeholder: string;
+  error?: string;
+  hint?: string;
+};
+
+/** Native select (works everywhere, including mobile pickers) styled like the text inputs. */
+export function SelectField({ name, label, options, placeholder, error, hint, className, ...props }: SelectFieldProps) {
+  const hintId = hint && !error ? `${name}-hint` : undefined;
+  const errorId = error ? `${name}-error` : undefined;
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={name}>{label}</Label>
+      <select
+        id={name}
+        name={name}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
+        className={
+          "h-10 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:h-9 md:text-sm " +
+          (className ?? "")
+        }
+        {...props}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+      {hint && !error && (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p id={errorId} className="text-xs font-medium text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}

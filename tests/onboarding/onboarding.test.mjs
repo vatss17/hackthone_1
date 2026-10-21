@@ -36,6 +36,14 @@ async function signIn(label) {
 }
 const company = (label) => `M13C2 TEST ${runId} ${label}`;
 
+// Company -> factory -> dashboard: after registering a company the dashboard needs one active factory.
+async function addFactoryViaForm(browser, name) {
+  const r = await browser.submit("/factories/new", 'name="factoryName"', {
+    factoryName: name, addressLine1: "1 Test Road", addressLine2: "", city: "Testville", state: "Gujarat", postalCode: "380001",
+  });
+  assert.equal(r.status, 303, `adding a factory failed: status ${r.status}`);
+}
+
 describe("manufacturer company registration (end to end)", { skip: !enabled }, () => {
   before(async () => {
     assert.ok(await appIsUp(), `app not reachable at ${APP_URL}; start it with npm run dev`);
@@ -141,6 +149,10 @@ describe("manufacturer company registration (end to end)", { skip: !enabled }, (
 
   it("the personalised dashboard shows the company; a refresh keeps the state and /onboarding no longer shows", async () => {
     const b = await signIn("a");
+    // A registered company with no factory is guided to factory registration before the dashboard.
+    const guided = await b.browse("/");
+    assert.equal(guided.finalPath, "/factories/new", JSON.stringify(guided.trail));
+    await addFactoryViaForm(b, `${company("a")} plant`);
     for (let i = 0; i < 3; i++) {
       const home = await b.get("/");
       assert.equal(home.status, 200);
@@ -240,6 +252,7 @@ describe("manufacturer company registration (end to end)", { skip: !enabled }, (
     const b = await signIn("e");
     const r = await b.submit("/onboarding", 'name="companyName"', { companyName: evil, legalName: "" });
     assert.equal(r.status, 303);
+    await addFactoryViaForm(b, `${company("e")} plant`);
     const home = await b.get("/");
     assert.equal(home.status, 200);
     assert.ok(!home.text.includes("<img src=x"), "unescaped markup in the page");
@@ -247,7 +260,9 @@ describe("manufacturer company registration (end to end)", { skip: !enabled }, (
   });
 
   it("one user's session never shows another user's company", async () => {
-    const dashboard = (await (await signIn("d")).get("/")).text;
+    const d = await signIn("d");
+    await addFactoryViaForm(d, `${company("d")} plant`);
+    const dashboard = (await d.get("/")).text;
     assert.match(dashboard, new RegExp(company("d")));
     for (const other of ["a", "c", "e"]) assert.ok(!dashboard.includes(company(other)), `saw ${other}'s company`);
   });
