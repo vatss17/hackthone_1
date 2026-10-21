@@ -1,0 +1,138 @@
+@import "tailwindcss";
+@import "shadcn/tailwind.css";
+
+/*
+ * Design tokens
+ * -------------
+ * Palette: deep charcoal text, muted teal accent, warm off-white ground,
+ * soft gray-green borders, restrained amber as a secondary accent.
+ *
+ * Contrast notes (measured against --background #F7F8F6):
+ *   foreground 13.8:1 · muted-foreground 5.6:1 · primary 5.7:1
+ *   --amber (#C28F5C) is 2.7:1, so it is for non-text accents only.
+ *   Amber text uses --amber-text (#7A4F22, 6.6:1).
+ *   --border is a decorative divider; form controls use --input (>= 3:1).
+ */
+:root {
+  --background: #f7f8f6;
+  --foreground: #172b32;
+
+  --card: #ffffff;
+  --card-foreground: #172b32;
+  --popover: #ffffff;
+  --popover-foreground: #172b32;
+
+  --primary: #356b68;
+  --primary-foreground: #ffffff;
+  --secondary: #eef1ee;
+  --secondary-foreground: #172b32;
+  --muted: #eef1ee;
+  --muted-foreground: #55676c;
+  --accent: #e8eeeb;
+  --accent-foreground: #172b32;
+
+  --border: #e4e9e6;
+  --input: #7f918b;
+  --ring: #356b68;
+  --destructive: #a73a2b;
+
+  --amber: #c28f5c;
+  --amber-text: #7a4f22;
+
+  --sidebar: #f0f3f0;
+  --sidebar-foreground: #172b32;
+  --sidebar-primary: #356b68;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e4ebe8;
+  --sidebar-accent-foreground: #172b32;
+  --sidebar-border: #e4e9e6;
+  --sidebar-ring: #356b68;
+
+  /* Evidence / status labels (see src/components/status-badge.tsx) */
+  --status-verified-bg: #e3eeec;
+  --status-verified-fg: #24504d;
+  --status-verified-border: #bfd6d2;
+  --status-secondary-bg: #f1efe6;
+  --status-secondary-fg: #5e5530;
+  --status-secondary-border: #dcd7bf;
+  --status-user-bg: #eef1ee;
+  --status-user-fg: #3f5258;
+  --status-user-border: #d3dbd7;
+  --status-estimate-bg: #f6ecdf;
+  --status-estimate-fg: #7a4f22;
+  --status-estimate-border: #e5cdae;
+  --status-ai-bg: #e8eef4;
+  --status-ai-fg: #2b4a66;
+  --status-ai-border: #c5d3e0;
+  --status-missing-bg: #f8e9e6;
+  --status-missing-fg: #8a3326;
+  --status-missing-border: #e9c4bc;
+  --status-planned-bg: transparent;
+  --status-planned-fg: #55676c;
+  --status-planned-border: #c9d3ce;
+
+  /* Modest radii: 6px base */
+  --radius: 0.375rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-heading: var(--font-sans);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-amber: var(--amber);
+  --color-amber-text: var(--amber-text);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.67);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.33);
+  --radius-xl: calc(var(--radius) * 1.67);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground text-[15px] leading-6 antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading text-foreground;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
