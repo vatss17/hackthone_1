@@ -1,8 +1,16 @@
 import { Brand } from "@/components/layout/brand";
+import { Button } from "@/components/ui/button";
+import { logOut } from "@/lib/actions/auth";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { NavList } from "@/components/layout/nav-list";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  user,
+  children,
+}: {
+  user: { email: string };
+  children: React.ReactNode;
+}) {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
       <a
@@ -27,9 +35,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="min-w-0 truncate text-sm font-semibold lg:hidden">
             Export Enablement Platform
           </div>
-          <div className="ml-auto text-xs text-muted-foreground">
-            <span className="hidden sm:inline">Pre-release build · </span>
-            No live data
+          <div className="ml-auto flex min-w-0 items-center gap-3 text-xs text-muted-foreground">
+            <span className="hidden xl:inline">Pre-release build · No live data</span>
+            <span className="hidden max-w-56 truncate text-foreground md:inline" title={user.email}>
+              {user.email}
+            </span>
+            <form action={logOut}>
+              <Button type="submit" variant="outline" size="sm">
+                Sign out
+              </Button>
+            </form>
           </div>
         </header>
 

@@ -8,9 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:db": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/db/*.test.mjs"
+    "test:db": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/db/*.test.mjs",
+    "test:auth": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/auth/*.test.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.118.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.61.0",

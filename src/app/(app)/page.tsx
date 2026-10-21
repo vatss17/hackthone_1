@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/auth";
 import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/section";
 import { EmptyState } from "@/components/empty-state";
@@ -79,7 +80,11 @@ const labels: { kind: StatusKind; text: string }[] = [
   },
 ];
 
-export default function OverviewPage() {
+// Reads the session on every request (see the layout for why this opts out of instant validation).
+export const instant = false;
+
+export default async function OverviewPage() {
+  await requireUser();
   return (
     <>
       <PageHeader
