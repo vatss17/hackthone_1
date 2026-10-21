@@ -2,7 +2,7 @@
 
 Working title. An export enablement platform for Indian manufacturers (initial focus: finished plastic products to the UAE).
 
-**Status: M1.3C.1 (authentication; not yet reviewed or committed).** Earlier: M1.2 design foundation, M1.3B database foundation. The app has a responsive shell, real email/password authentication on Supabase Auth, and a static Overview page behind sign-in. There is no onboarding, no business features and no AI integration yet. Only Overview is navigable; the other modules are listed as planned and are not links.
+**Status: M1.3C.2 (company registration; not yet reviewed or committed).** Earlier: M1.2 design foundation, M1.3B database foundation. The app has a responsive shell, real email/password authentication on Supabase Auth, and a static Overview page behind sign-in. There is no onboarding, no business features and no AI integration yet. Only Overview is navigable; the other modules are listed as planned and are not links.
 
 ## Requirements
 
@@ -79,3 +79,25 @@ Environment, in two git-ignored files (see `.env.example`):
 npm run dev          # terminal 1
 npm run test:auth    # terminal 2: end-to-end flows + static credential checks (synthetic users, dev project only)
 ```
+
+## Company registration (M1.3C.2)
+
+After signing in, a user without a company is sent to `/onboarding` and registers it with two fields: company/trading name (required) and registered legal name (optional). Nothing else is collected yet.
+
+- The Server Action calls the existing `create_organization` database function, which creates the organization and the owner membership atomically, enforces one company per user and serializes concurrent submissions. The app never inserts into `organizations` or `memberships` itself, and never reads a user id, organization id or role from the form.
+- `requireOrganization()` (`src/lib/organization.ts`) guards the dashboard on the server. Owners who open `/onboarding` are redirected to the dashboard.
+- Errors shown to users are fixed, safe messages; raw database text is never displayed.
+
+```bash
+npm run dev                 # terminal 1
+npm run test:onboarding     # terminal 2: unit + end-to-end tests (synthetic users, dev project only)
+```
+
+Note: a Next.js 16.4.2 development-mode bug breaks `cookies()` when a page re-renders in the same request as a Server Action. `src/lib/supabase/server.ts` therefore reads the session from the request's Cookie header and uses `cookies()` only to write.
+
+### Known limitations (company registration)
+
+- **No-JavaScript form submission in production builds is incomplete.** With Cache Components enabled, a form POST made without JavaScript to a fully dynamic page (`/onboarding`) returns only the streamed part of the document in production, not a complete HTML page, so a validation error would not be shown to a user who has JavaScript disabled. With JavaScript (the supported case) the Server Action runs over `fetch` and works: verified in a real browser against the development server, and the action, validation and database behaviour are covered by end-to-end tests that pass against the production build. Development mode returns a full document. Fixing this properly means changing how the page is rendered, which is deliberately not done here; revisit if no-JS support is ever a requirement.
+- **Production-build behaviour of the JavaScript path was not exercised in a real browser** (only the development server was). The production build is covered by HTTP-level end-to-end tests.
+- Company name and legal name cannot be edited in the UI yet (the database already lets owners update them).
+- An organization archived by an administrator is not specially handled in the UI yet.

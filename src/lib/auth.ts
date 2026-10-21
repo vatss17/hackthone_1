@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
+import { parseCookieHeader } from "@supabase/ssr";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -34,6 +35,6 @@ export async function requireUser(): Promise<CurrentUser> {
   // A leftover Supabase cookie with no valid user means the session expired or was
   // revoked. Route through /auth/session-expired, which clears the stale cookie
   // (a Server Component cannot), so the proxy does not bounce the user back here.
-  const hadSession = (await cookies()).getAll().some((c) => c.name.startsWith("sb-"));
+  const hadSession = parseCookieHeader((await headers()).get("cookie") ?? "").some((c) => c.name.startsWith("sb-"));
   redirect(hadSession ? "/auth/session-expired" : "/login");
 }

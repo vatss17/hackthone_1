@@ -13,7 +13,8 @@ type FieldProps = Omit<React.ComponentProps<"input">, "id" | "name"> & {
 
 /** Label, input, optional hint and an accessible error message. */
 export function TextField({ name, label, error, hint, className, ...props }: FieldProps) {
-  const hintId = hint ? `${name}-hint` : undefined;
+  // The hint is only rendered while there is no error, so only then may it be referenced.
+  const hintId = hint && !error ? `${name}-hint` : undefined;
   const errorId = error ? `${name}-error` : undefined;
   return (
     <div className="grid gap-1.5">
@@ -43,7 +44,8 @@ export function TextField({ name, label, error, hint, className, ...props }: Fie
 /** Password input with a working show / hide control. */
 export function PasswordField({ name, label, error, hint, ...props }: FieldProps) {
   const [visible, setVisible] = useState(false);
-  const hintId = hint ? `${name}-hint` : undefined;
+  // The hint is only rendered while there is no error, so only then may it be referenced.
+  const hintId = hint && !error ? `${name}-hint` : undefined;
   const errorId = error ? `${name}-error` : undefined;
   return (
     <div className="grid gap-1.5">

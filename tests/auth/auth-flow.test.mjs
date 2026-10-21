@@ -9,7 +9,8 @@ import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import { enabled } from "../db/lib/env.mjs";
-import { createTestUser, deleteUser, newRunId, rawPrivileged } from "../db/lib/admin.mjs";
+import { archiveOrganization, createTestUser, deleteUser, newRunId, rawPrivileged } from "../db/lib/admin.mjs";
+import { client } from "../db/lib/api.mjs";
 import { APP_URL, Browser, appIsUp } from "./lib/http.mjs";
 
 const strongPassword = () => `${randomUUID()}${randomBytes(6).toString("hex")}`;
@@ -28,9 +29,20 @@ describe("manufacturer authentication (end to end)", { skip: !enabled }, () => {
     const u = await createTestUser(runId, "auth");
     created.push(u.id);
     confirmed = u;
+    // Dashboard flows below need a company: register one through the real database function,
+    // as the user (company registration itself is covered by tests/onboarding).
+    const api = client();
+    const session = await api.signIn(u.email, u.password);
+    const org = await api.rpc(session.token, "create_organization", { p_name: `M13C1 TEST ${runId} auth` });
+    assert.ok(org.ok, `could not create the test company: status ${org.status}`);
   });
   after(async () => {
-    for (const id of created) await deleteUser(id).catch(() => {});
+    // Owners of active organizations cannot be deleted: archive their organizations first.
+    for (const id of created) {
+      const memberships = (await rawPrivileged("GET", `/rest/v1/memberships?user_id=eq.${id}&select=organization_id`)).body ?? [];
+      for (const m of memberships) await archiveOrganization(m.organization_id).catch(() => {});
+      await deleteUser(id).catch(() => {});
+    }
   });
 
   it("signed-out visitors are redirected from the dashboard and from unknown protected paths", async () => {
@@ -171,10 +183,11 @@ describe("manufacturer authentication (end to end)", { skip: !enabled }, () => {
       assert.equal(new URL(r.location, APP_URL).pathname, "/", "open redirect not neutralised");
       assert.equal(new URL(r.location, APP_URL).origin, APP_URL);
       assert.equal(b.hasAuthCookie(), true);
-      const home = await b.get("/");
-      assert.equal(home.status, 200);
-      assert.match(home.text, /Welcome/);
-      assert.ok(home.text.includes(email), "signed-in email not shown in the header");
+      // A newly confirmed user has no company yet, so the dashboard sends them to registration.
+      const landing = await b.browse("/");
+      assert.equal(landing.finalPath, "/onboarding", JSON.stringify(landing.trail));
+      assert.match(landing.text, /Register your company/);
+      assert.ok(landing.text.includes(email), "signed-in email not shown in the header");
     });
 
     it("the same link cannot be used twice", async () => {

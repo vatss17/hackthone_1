@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { requireOrganization } from "@/lib/organization";
 import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/section";
 import { EmptyState } from "@/components/empty-state";
@@ -83,15 +83,33 @@ const labels: { kind: StatusKind; text: string }[] = [
 // Reads the session on every request (see the layout for why this opts out of instant validation).
 export const instant = false;
 
+const registeredOn = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone: "Asia/Kolkata" });
+
 export default async function OverviewPage() {
-  await requireUser();
+  const { organization } = await requireOrganization();
   return (
     <>
       <PageHeader
         eyebrow="Overview"
-        title="Welcome"
+        title={`Welcome, ${organization.name}`}
         description="A guided path from factory capabilities to a first export, starting with Indian manufacturers of finished plastic products and the UAE."
       />
+
+      <Section title="Your company">
+        <dl className="divide-y rounded-md border bg-card">
+          {[
+            ["Company name", organization.name],
+            ["Registered legal name", organization.legalName ?? "Not provided"],
+            ["Your role", organization.role === "owner" ? "Owner" : "Member"],
+            ["Registered", registeredOn.format(new Date(organization.createdAt))],
+          ].map(([label, value]) => (
+            <div key={label} className="grid gap-1 px-4 py-3 sm:grid-cols-[12rem_1fr] sm:gap-4 sm:px-5">
+              <dt className="text-sm text-muted-foreground">{label}</dt>
+              <dd className="min-w-0 break-words text-sm">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </Section>
 
       <Section
         title="The export journey"

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { AppShell } from "@/components/layout/app-shell";
-import { requireUser } from "@/lib/auth";
+import { requireOrganization } from "@/lib/organization";
 
 
 // Opt this area out of Next's instant-navigation validation. Every navigation into it
@@ -19,7 +19,8 @@ export const instant = false;
  * calls requireUser(), because layouts do not re-render on client navigation.
  */
 async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
-  const user = await requireUser();
+  // Validates the user on the server, then sends users without a company to /onboarding.
+  const { user } = await requireOrganization();
   return <AppShell user={user}>{children}</AppShell>;
 }
 

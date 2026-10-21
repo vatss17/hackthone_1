@@ -70,7 +70,7 @@ describe("authorization and hygiene (static)", () => {
   it("every page and route handler in the authenticated area verifies the user on the server", () => {
     const protectedFiles = sourceFiles.filter((f) => f.includes(join("src", "app", "(app)")) && /(page|layout|route)\.tsx?$/.test(f));
     assert.ok(protectedFiles.length >= 2, "expected the (app) layout and page");
-    for (const f of protectedFiles) assert.match(read(f), /requireUser\(/, `${f} does not call requireUser()`);
+    for (const f of protectedFiles) assert.match(read(f), /requireUser\(|requireOrganization\(/, `${f} does not verify the user on the server`);
   });
 
   it("Server Actions that act on a session do not trust the client", () => {
@@ -126,5 +126,34 @@ describe("authorization and hygiene (static)", () => {
     const files = walk(dir).filter((f) => /\.(js|json|html|rsc|body)$/.test(f));
     for (const f of files) assert.ok(!readFileSync(f, "utf8").includes(secret), `secret key value found in ${f}`);
     t.diagnostic(`${files.length} server build files scanned`);
+  });
+});
+
+describe("company registration (static)", () => {
+  it("the application never writes organizations or memberships directly; only the RPC creates them", () => {
+    const hits = sourceFiles.filter((f) =>
+      /from\(\s*["'](organizations|memberships)["']\s*\)\s*\.\s*(insert|upsert|update|delete)/.test(read(f)),
+    );
+    assert.deepEqual(hits, []);
+    assert.match(read("src/lib/actions/organization.ts"), /rpc\(\s*["']create_organization["']/);
+  });
+
+  it("the registration action reads only the two company fields from the form", () => {
+    const src = read("src/lib/actions/organization.ts");
+    const reads = [...src.matchAll(/formData\.get\(\s*["']([^"']+)["']/g)].map((m) => m[1]);
+    assert.deepEqual(reads.sort(), ["companyName", "legalName"]);
+    assert.match(src, /await requireUser\(\)/);
+  });
+
+  it("the RPC call passes only the two name parameters (no user id, organization id or role)", () => {
+    const src = read("src/lib/actions/organization.ts");
+    const call = src.slice(src.indexOf('rpc("create_organization"'), src.indexOf('rpc("create_organization"') + 160);
+    const keys = [...call.matchAll(/\b(p_[a-z_]+)\s*:/g)].map((m) => m[1]);
+    assert.deepEqual(keys.sort(), ["p_legal_name", "p_name"]);
+  });
+
+  it("organization-dependent pages use requireOrganization()", () => {
+    assert.match(read("src/app/(app)/page.tsx"), /requireOrganization\(/);
+    assert.match(read("src/app/(app)/layout.tsx"), /requireOrganization\(/);
   });
 });

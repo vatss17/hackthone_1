@@ -19,11 +19,22 @@ export async function createFixture(labels, { staff = {} } = {}) {
   const users = {};
   const orgIds = [];
 
-  for (const label of labels) {
-    const u = await createTestUser(runId, label);
-    if (staff[label]) await grantStaff(u.id, staff[label]);
-    const session = await api.signIn(u.email, u.password);
-    users[label] = { ...u, token: session.token };
+  const cleanupUsers = async () => {
+    for (const u of Object.values(created)) await deleteUser(u.id).catch(() => {});
+  };
+  const created = {};
+  try {
+    for (const label of labels) {
+      const u = await createTestUser(runId, label);
+      created[label] = u;
+      if (staff[label]) await grantStaff(u.id, staff[label]);
+      const session = await api.signIn(u.email, u.password);
+      users[label] = { ...u, token: session.token };
+    }
+  } catch (err) {
+    // Setup failed part-way (for example an Auth rate limit): do not leave users behind.
+    await cleanupUsers();
+    throw err;
   }
 
   return {

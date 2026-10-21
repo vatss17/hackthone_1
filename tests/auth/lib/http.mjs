@@ -66,6 +66,25 @@ export class Browser {
     return { status: 0, text: "", finalPath: next, trail, looped: true };
   }
 
+  /** Hidden inputs (the Server Action identifiers) of the first form on `path` containing `marker`. */
+  async hiddenFields(path, marker) {
+    const page = await this.get(path);
+    const form = [...page.text.matchAll(/<form[\s\S]*?<\/form>/g)].map((m) => m[0]).find((f) => f.includes(marker));
+    if (!form) throw new Error(`no form containing ${marker} on ${path} (status ${page.status})`);
+    return [...form.matchAll(/<input[^>]*type="hidden"[^>]*>/g)]
+      .map((m) => [m[0].match(/name="([^"]*)"/)?.[1], m[0].match(/value="([^"]*)"/)?.[1] ?? ""])
+      .filter(([n]) => n)
+      .map(([n, v]) => [decode(n), decode(v)]);
+  }
+
+  /** POST a form using previously harvested hidden fields plus `fields`, as THIS session. */
+  postForm(path, hidden, fields) {
+    const data = new FormData();
+    for (const [k, v] of hidden) data.append(k, v);
+    for (const [k, v] of Object.entries(fields)) data.set(k, v);
+    return this.request(path, { method: "POST", body: data });
+  }
+
   /** Submit the first <form> on `path` whose HTML includes `marker`, with `fields` filled in. */
   async submit(path, marker, fields) {
     const page = await this.get(path);
