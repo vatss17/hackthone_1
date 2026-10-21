@@ -44,3 +44,17 @@ This project is pre-release and has no public disclosure process yet. Report con
 ## Secrets
 
 Never commit secrets. `.env*` files are git-ignored (only `.env.example` may be committed). Service-role credentials must never reach the browser.
+
+## Supabase advisor: `public.create_organization` is a SECURITY DEFINER function executable by `authenticated` (accepted, intentional)
+
+Supabase's security advisor flags SECURITY DEFINER functions in an exposed schema that signed-in users can execute. `public.create_organization(text, text)` is one on purpose: it is the **only** way to create an organization, because API roles have no INSERT privilege on `organizations` or `memberships`.
+
+Why this is acceptable, and what limits it:
+
+- Identity comes only from `auth.uid()` (the verified session). The function takes no user id, organization id or role; `owner` is hard-coded.
+- It requires a confirmed email, validates its inputs, and locks the caller's profile row so concurrent calls serialize; `memberships_user_id_key` (unique on `user_id`) is the database-level guarantee of one organization per user.
+- `search_path = ''`, every reference schema-qualified; EXECUTE is revoked from PUBLIC and `anon`.
+- Observed on the dev project (M1.3B.2): `service_role` also has EXECUTE (Supabase's default ACL for new functions in `public`), but a call without a user session is rejected ("not authenticated") and creates nothing. Revoking it is an open, optional hardening step.
+- Verified by the `tests/db` suite on the dev project (41/41 passed, M1.3B.3): anonymous calls are rejected, invalid input is rejected, a second organization is rejected, 8 concurrent calls by one user produce exactly one organization.
+
+The `private` helper functions are executable by `authenticated` only so RLS policies can call them; the Data API exposes only `public` and `graphql_public` (confirmed: requests for schema `private` return PGRST106).

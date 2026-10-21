@@ -42,3 +42,8 @@ next-env.d.ts
 
 # local env files hold secrets; only the example file is committed
 !.env.example
+
+# supabase CLI: link state, branches and local secrets (never commit)
+/supabase/.temp/
+/supabase/.branches/
+.env.keys
