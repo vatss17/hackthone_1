@@ -11,7 +11,8 @@
     "test:db": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/db/*.test.mjs",
     "test:auth": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/auth/*.test.mjs",
     "test:onboarding": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/onboarding/*.test.mjs",
-    "test:factories": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/factories/*.test.mjs"
+    "test:factories": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/factories/*.test.mjs",
+    "test:db:capabilities": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/db-capabilities/*.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
