@@ -16,6 +16,8 @@ export interface NavItem {
   label: string;
   href: string;
   status: NavStatus;
+  /** Where it sits in the sidebar. */
+  group: "workspace" | "journey";
   /** One line describing what the module does. Documentation only. */
   description: string;
 }
@@ -26,6 +28,7 @@ export const navigation: NavItem[] = [
     label: "Overview",
     href: "/",
     status: "available",
+    group: "workspace",
     description: "Where the export journey starts and what comes next.",
   },
   {
@@ -33,6 +36,7 @@ export const navigation: NavItem[] = [
     label: "My Factory",
     href: "/factories",
     status: "available",
+    group: "workspace",
     description: "Factories, processes, capacity, machinery and materials.",
   },
   {
@@ -40,6 +44,7 @@ export const navigation: NavItem[] = [
     label: "Products",
     href: "/products",
     status: "available",
+    group: "workspace",
     description: "The finished products you make, with specifications and where they are made.",
   },
   {
@@ -47,27 +52,39 @@ export const navigation: NavItem[] = [
     label: "Export Opportunities",
     href: "/opportunities",
     status: "available",
+    group: "journey",
     description: "Opportunities for your products, and what else your factory could make.",
   },
   {
     id: "viability",
     label: "Landed Cost & Viability",
     href: "/viability",
-    status: "preview",
+    status: "available",
+    group: "journey",
     description: "Landed cost, freight and tariff estimates, pricing scenarios.",
+  },
+  {
+    id: "feasibility",
+    label: "Export Feasibility",
+    href: "/feasibility",
+    status: "available",
+    group: "journey",
+    description: "A first-pass assessment per product: fit, cost, margin, gaps and open questions.",
   },
   {
     id: "compliance",
     label: "Compliance & Testing",
     href: "/compliance",
-    status: "preview",
+    status: "available",
+    group: "journey",
     description: "Product requirement screening, testing and certification gaps.",
   },
   {
     id: "schemes",
     label: "CEPA & Incentives",
     href: "/schemes",
-    status: "preview",
+    status: "available",
+    group: "journey",
     description: "India–UAE CEPA, rules of origin and Indian export incentives.",
   },
   {
@@ -75,6 +92,7 @@ export const navigation: NavItem[] = [
     label: "Export Documents",
     href: "/documentation",
     status: "preview",
+    group: "journey",
     description: "Document checklist, drafts and missing-document tracking.",
   },
   {
@@ -82,6 +100,7 @@ export const navigation: NavItem[] = [
     label: "Export Readiness Roadmap",
     href: "/roadmap",
     status: "preview",
+    group: "journey",
     description: "Prioritised action plan, progress and readiness reports.",
   },
   {
@@ -89,10 +108,13 @@ export const navigation: NavItem[] = [
     label: "Expert Assistance",
     href: "/services",
     status: "preview",
+    group: "journey",
     description: "Requests for testing, freight quotes and specialist support.",
   },
 ];
 
+export const workspaceNav = navigation.filter((i) => i.group === "workspace");
+export const journeyNav = navigation.filter((i) => i.group === "journey");
 export const availableNav = navigation.filter((i) => i.status === "available");
 export const previewNav = navigation.filter((i) => i.status === "preview");
 export const plannedNav = navigation.filter((i) => i.status === "planned");

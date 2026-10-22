@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
+import { JourneyBar } from "@/components/journey-bar";
 import { StatusBadge } from "@/components/status-badge";
 import { Chip, FitMeter, LabelledList, ScoreBreakdown } from "@/components/opportunities/parts";
 import { requireOrganization } from "@/lib/organization";
@@ -72,6 +73,8 @@ export default async function ExplorePage({ params }: PageProps<"/opportunities/
           </Button>
         }
       />
+
+      <JourneyBar current="explore" reference={ref} />
 
       <div className="mt-6 rounded-md border border-primary/30 bg-(--status-verified-bg) p-4 sm:p-5">
         <p className="text-xs font-medium uppercase tracking-wide text-primary">Export feasibility status</p>
@@ -255,9 +258,10 @@ export default async function ExplorePage({ params }: PageProps<"/opportunities/
           {[
             { label: "Capability fit", badge: <StatusBadge kind={match ? "inferred" : "missing"} />, text: match ? FIT_LABEL[match.level] : "Not assessed", href: null as string | null },
             { label: "UAE demand and competition", badge: <StatusBadge kind="missing" />, text: "Verified trade data not connected", href: null },
-            { label: "Landed cost and margin", badge: <StatusBadge kind="planned" />, text: "Preview available", href: `/viability?product=${ref}` },
-            { label: "Compliance and testing", badge: <StatusBadge kind="planned" />, text: "Preview available", href: `/compliance?product=${ref}` },
-            { label: "CEPA and incentives", badge: <StatusBadge kind="planned" />, text: "Preview available", href: "/schemes" },
+            { label: "Landed cost and margin", badge: <StatusBadge kind="estimate" />, text: "Calculator available", href: `/viability?product=${ref}` },
+            { label: "Compliance and testing", badge: <StatusBadge kind="unknown" />, text: "Screening questions available", href: `/compliance?product=${ref}` },
+            { label: "CEPA and incentives", badge: <StatusBadge kind="unknown" />, text: "Screening questions available", href: `/schemes?product=${ref}` },
+            { label: "Export feasibility", badge: <StatusBadge kind="inferred" />, text: "Combined first assessment", href: `/feasibility/${ref}` },
             { label: "Export documents", badge: <StatusBadge kind="planned" />, text: "Preview available", href: "/documentation" },
           ].map((r) => (
             <li key={r.label} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm">
@@ -279,12 +283,12 @@ export default async function ExplorePage({ params }: PageProps<"/opportunities/
             <Link href={`/viability?product=${ref}`}>Continue to landed-cost assessment</Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="h-10">
-            <Link href={`/compliance?product=${ref}`}>Review compliance and testing</Link>
+            <Link href={`/feasibility/${ref}`}>Open export feasibility</Link>
           </Button>
         </div>
         {match && match.entry.processes.requiredAll.length > 0 && (
           <p className="mt-4 text-xs text-muted-foreground">
-            Needs {match.entry.processes.requiredAll.map((p) => PROCESS_NAMES[p].toLowerCase()).join(" and ")}. The landed-cost step is a preview today: it shows the inputs it will need.
+            Needs {match.entry.processes.requiredAll.map((p) => PROCESS_NAMES[p].toLowerCase()).join(" and ")}. The calculator starts from sample values you replace with your own.
           </p>
         )}
       </Panel>

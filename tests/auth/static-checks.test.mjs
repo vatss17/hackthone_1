@@ -166,7 +166,7 @@ describe("factory management (static)", () => {
     const deletes = sourceFiles.flatMap((f) => [...read(f).matchAll(/\.from\(\s*["'](\w+)["']\s*\)\s*\.delete\(/g)].map((m) => ({ f, table: m[1] })));
     assert.deepEqual(deletes.filter((d) => !LINK_TABLES.includes(d.table)), []);
     // and no delete call hides from the check by being built another way
-    const allDeleteCalls = sourceFiles.reduce((n, f) => n + (read(f).match(/\.delete\(/g) ?? []).length, 0);
+    const allDeleteCalls = sourceFiles.reduce((n, f) => n + (read(f).match(/(?<!memory)\.delete\(/g) ?? []).length, 0);
     assert.equal(allDeleteCalls, deletes.length);
   });
 

@@ -1,78 +1,103 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { StatusBadge, type StatusKind } from "@/components/status-badge";
-import { FeaturePreview } from "@/components/preview/feature-preview";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+import { JourneyBar } from "@/components/journey-bar";
+import { LandedCostWorkspace } from "@/components/landed-cost/workspace";
 import { requireOrganization } from "@/lib/organization";
+import { loadEngineInput } from "@/lib/capabilities";
 import { resolveSubject } from "@/lib/subject";
+import { discover } from "@/lib/opportunities/engine";
+import { factFields, sampleInputs } from "@/lib/landed-cost/defaults";
 
 export const metadata: Metadata = { title: "Landed Cost & Viability · Export Enablement Platform" };
 export const instant = false;
 
-const LINES: { line: string; from: string; kind: StatusKind }[] = [
-  { line: "Ex-works price per unit", from: "You provide your cost and target price", kind: "user" },
-  { line: "Packing, cartons and palletising", from: "Your carton data, once entered on the product", kind: "user" },
-  { line: "Inland freight, India to port", from: "Live freight rates not connected", kind: "missing" },
-  { line: "Ocean or air freight to the UAE", from: "Live freight rates not connected", kind: "missing" },
-  { line: "Insurance", from: "Assumption you can set", kind: "estimate" },
-  { line: "UAE customs duty", from: "Verified tariff data not connected", kind: "missing" },
-  { line: "Other taxes and port charges", from: "Verified source not connected", kind: "missing" },
-  { line: "Landed cost per unit and margin scenarios", from: "Calculated from the lines above, with every assumption shown", kind: "estimate" },
-];
-
 export default async function ViabilityPage({ searchParams }: PageProps<"/viability">) {
   const { organization } = await requireOrganization();
-  const subject = await resolveSubject(organization.id, (await searchParams).product);
+  const sp = await searchParams;
+  const subject = await resolveSubject(organization.id, sp.product);
+  const { input } = await loadEngineInput(organization.id);
+  const found = discover(input);
+  const assessmentRef = subject?.ref ?? "standalone";
+  const defaults = sampleInputs(subject ? { ...subject.facts, label: subject.name } : undefined);
+
   return (
-    <FeaturePreview
-      eyebrow="Landed Cost & Commercial Viability"
-      title="Would it pay to export this?"
-      intro="This step will turn a product into a landed-cost estimate in the UAE and compare it with what buyers might pay, with every assumption visible."
-      does={[
-        "Build a landed-cost estimate per unit from price, packing, freight, insurance, duty and charges.",
-        "Show margin under several pricing scenarios and what would have to be true for each.",
-        "Label every number as your input, an estimate or verified data, so nothing looks more certain than it is.",
-      ]}
-      needs={[
-        { label: "A product", kind: subject ? (subject.own ? "user" : "inferred") : "missing", note: subject ? `${subject.name} is selected.` : "Choose a product on the Export Opportunities page." },
-        { label: "Your cost and target price", kind: "missing", note: "Entered by you. Not collected yet." },
-        { label: "Carton and weight data", kind: "missing", note: "Part of the product record. Add it when this step opens." },
-        { label: "Verified duty and freight data", kind: "missing", note: "Needs connected sources, so no figures are shown." },
-      ]}
-      sources={["Verified UAE tariff and duty data", "Live or quoted freight rates", "UAE import price benchmarks"]}
-      next={{
-        href: subject ? `/opportunities/${subject.ref}` : "/opportunities",
-        label: subject ? `Back to ${subject.name}` : "Go to Export Opportunities",
-        note: "Keep improving your factory and product records. Everything you enter here will feed this step.",
-      }}
-    >
-      <section className="mt-10" aria-labelledby="shape-h">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="shape-h" className="text-lg font-semibold tracking-tight">
-            {subject ? `Cost build-up for ${subject.name}` : "Cost build-up"}
-          </h2>
-          <StatusBadge kind="demo" />
-        </div>
-        <p className="mt-1 text-sm text-muted-foreground">The structure of the estimate. No amounts are shown because no real inputs or data sources exist yet.</p>
-        <ul className="mt-3 divide-y rounded-md border bg-card">
-          {LINES.map((l) => (
-            <li key={l.line} className="grid gap-1.5 px-4 py-3 sm:grid-cols-[1fr_1fr_auto] sm:items-center sm:gap-4 sm:px-5">
-              <p className="text-sm font-medium">{l.line}</p>
-              <p className="text-sm text-muted-foreground">{l.from}</p>
-              <span className="flex items-center gap-2">
-                <span className="font-mono text-sm text-muted-foreground">—</span>
-                <StatusBadge kind={l.kind} />
-              </span>
-            </li>
-          ))}
-        </ul>
-        {subject && (
-          <p className="mt-3 text-sm">
-            <Link href={`/compliance?product=${subject.ref}`} className="font-medium text-primary underline-offset-4 hover:underline">
-              Next: compliance and testing for {subject.name}
+    <>
+      <PageHeader
+        eyebrow="Landed Cost & Commercial Viability"
+        title={subject ? `Would it pay to export ${subject.name}?` : "Landed-cost calculator"}
+        description="Work out what it would cost to land your product in the UAE, what price makes sense, and what margin you could earn. Every number is yours to edit, and every assumption is labelled."
+        action={
+          <Button asChild variant="outline">
+            <Link href={subject ? `/opportunities/${subject.ref}` : "/opportunities"}>{subject ? "Back to exploration" : "Export Opportunities"}</Link>
+          </Button>
+        }
+      />
+      <JourneyBar current="cost" reference={subject?.ref ?? null} />
+
+      <details className="mt-5 rounded-md border bg-card px-4 py-3 text-sm sm:px-5" open={!subject}>
+        <summary className="cursor-pointer font-medium">{subject ? "Calculate for a different product" : "Choose what to calculate"}</summary>
+        <div className="mt-3 grid gap-5 sm:grid-cols-3">
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your products</h3>
+            <ul className="mt-2 space-y-1">
+              {found.yourProducts.length === 0 && <li className="text-muted-foreground">None yet.</li>}
+              {found.yourProducts.map((p) => (
+                <li key={p.product.id}>
+                  <Link href={`/viability?product=${p.product.id}`} className="text-primary underline-offset-4 hover:underline">
+                    {p.product.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Suggested for you</h3>
+            <ul className="mt-2 space-y-1">
+              {found.adjacent.slice(0, 5).map((m) => (
+                <li key={m.entry.id}>
+                  <Link href={`/viability?product=${m.entry.id}`} className="text-primary underline-offset-4 hover:underline">
+                    {m.entry.name}
+                  </Link>
+                </li>
+              ))}
+              {found.adjacent.length === 0 && <li className="text-muted-foreground">Declare a process to see suggestions.</li>}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Something else</h3>
+            <p className="mt-2 text-muted-foreground">Exploring a new idea? Use the standalone calculator and name it yourself.</p>
+            <Link href="/viability" className="mt-1 inline-block text-primary underline-offset-4 hover:underline">
+              Standalone calculator
             </Link>
-          </p>
-        )}
+          </div>
+        </div>
+      </details>
+
+      <LandedCostWorkspace
+        key={assessmentRef}
+        scope={organization.id}
+        assessmentRef={assessmentRef}
+        defaults={defaults}
+        factFields={subject ? factFields(subject.facts) : []}
+        subjectName={subject?.name ?? null}
+      />
+
+      <section className="mt-14 rounded-md border bg-card p-4 sm:p-5" aria-labelledby="next-h">
+        <h2 id="next-h" className="text-base font-semibold tracking-tight">
+          Next
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">Bring the numbers together with the manufacturing fit, the open regulatory questions and a short action list.</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button asChild size="lg" className="h-10">
+            <Link href={`/feasibility/${subject?.ref ?? "standalone"}`}>Review export feasibility</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="h-10">
+            <Link href={subject ? `/compliance?product=${subject.ref}` : "/compliance"}>Compliance screening</Link>
+          </Button>
+        </div>
       </section>
-    </FeaturePreview>
+    </>
   );
 }

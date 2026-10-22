@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { availableNav, plannedNav, previewNav, type NavItem } from "@/config/navigation";
+import { journeyNav, plannedNav, workspaceNav, type NavItem } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 
 const groupLabel =
@@ -37,16 +37,14 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
     <nav aria-label="Main" className="flex flex-col gap-6">
       <div>
         <h2 className={groupLabel}>Workspace</h2>
-        <ul className="flex flex-col gap-0.5">{availableNav.map((i) => link(i))}</ul>
+        <ul className="flex flex-col gap-0.5">{workspaceNav.map((i) => link(i, i.status === "preview"))}</ul>
       </div>
 
-      {previewNav.length > 0 && (
-        <div>
-          <h2 className={groupLabel}>Export journey</h2>
-          <ul className="flex flex-col gap-0.5">{previewNav.map((i) => link(i, true))}</ul>
-          <p className="px-3 pt-2 text-xs leading-5 text-muted-foreground">Previews show what each step will do. Live data is not connected yet.</p>
-        </div>
-      )}
+      <div>
+        <h2 className={groupLabel}>Export journey</h2>
+        <ul className="flex flex-col gap-0.5">{journeyNav.map((i) => link(i, i.status === "preview"))}</ul>
+        <p className="px-3 pt-2 text-xs leading-5 text-muted-foreground">Steps tagged Preview show what they will do. Live data is not connected yet.</p>
+      </div>
 
       {plannedNav.length > 0 && (
         <div>

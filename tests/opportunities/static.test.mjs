@@ -29,6 +29,12 @@ describe("navigation", () => {
       assert.match(src, /FeaturePreview/, item.href);
     }
   });
+  it("pages that are no longer previews do not claim to be", () => {
+    for (const item of navigation.filter((i) => i.status === "available")) {
+      const src = readFileSync(item.href === "/" ? join(appDir, "page.tsx") : join(appDir, item.href, "page.tsx"), "utf8");
+      assert.ok(!/FeaturePreview/.test(src), `${item.href} still uses the preview shell`);
+    }
+  });
 });
 
 describe("profile actions", () => {

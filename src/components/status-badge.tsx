@@ -11,6 +11,9 @@ export type StatusKind =
   | "estimate"
   | "ai"
   | "inferred"
+  | "assumption"
+  | "quoted"
+  | "unknown"
   | "expert"
   | "missing"
   | "demo"
@@ -46,6 +49,21 @@ const styles: Record<StatusKind, { label: string; className: string }> = {
     label: "Inferred",
     className:
       "bg-(--status-ai-bg) text-(--status-ai-fg) border-(--status-ai-border)",
+  },
+  quoted: {
+    label: "Quote held",
+    className:
+      "bg-(--status-user-bg) text-(--status-user-fg) border-(--status-user-border)",
+  },
+  assumption: {
+    label: "Assumption",
+    className:
+      "bg-(--status-estimate-bg) text-(--status-estimate-fg) border-(--status-estimate-border)",
+  },
+  unknown: {
+    label: "Needs expert confirmation",
+    className:
+      "bg-(--status-missing-bg) text-(--status-missing-fg) border-(--status-missing-border)",
   },
   expert: {
     label: "Expert reviewed",

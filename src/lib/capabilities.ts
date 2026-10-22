@@ -175,6 +175,11 @@ export type ProductDetail = {
   intendedUse: string | null;
   hsCodeClaimed: string | null;
   unitWeightG: number | null;
+  unitsPerCarton: number | null;
+  cartonGrossWeightKg: number | null;
+  cartonLengthMm: number | null;
+  cartonWidthMm: number | null;
+  cartonHeightMm: number | null;
   specs: { id: string; name: string; value: string; unit: string | null }[];
   factories: { linkId: string; factoryId: string; name: string }[];
 };
@@ -183,7 +188,7 @@ export async function getProductDetail(organizationId: string, id: string): Prom
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, internal_code, description, category, intended_use, hs_code_claimed, unit_weight_g")
+    .select("id, name, internal_code, description, category, intended_use, hs_code_claimed, unit_weight_g, units_per_carton, carton_gross_weight_kg, carton_length_mm, carton_width_mm, carton_height_mm")
     .eq("organization_id", organizationId)
     .eq("id", id)
     .is("archived_at", null)
@@ -205,6 +210,11 @@ export async function getProductDetail(organizationId: string, id: string): Prom
     intendedUse: d.intended_use as string | null,
     hsCodeClaimed: d.hs_code_claimed as string | null,
     unitWeightG: d.unit_weight_g === null ? null : Number(d.unit_weight_g),
+    unitsPerCarton: d.units_per_carton === null ? null : Number(d.units_per_carton),
+    cartonGrossWeightKg: d.carton_gross_weight_kg === null ? null : Number(d.carton_gross_weight_kg),
+    cartonLengthMm: d.carton_length_mm === null ? null : Number(d.carton_length_mm),
+    cartonWidthMm: d.carton_width_mm === null ? null : Number(d.carton_width_mm),
+    cartonHeightMm: d.carton_height_mm === null ? null : Number(d.carton_height_mm),
     specs: (specs.data as unknown as { id: string; name: string; value_text: string | null; value_number: string | number | null; unit: string | null }[]).map((s) => ({
       id: s.id,
       name: s.name,

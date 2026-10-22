@@ -17,7 +17,8 @@
     "demo:reset": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local scripts/demo-scenario.mjs reset",
     "demo:destroy": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local scripts/demo-scenario.mjs destroy",
     "demo:status": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local scripts/demo-scenario.mjs status",
-    "test:opportunities": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/opportunities/*.test.mjs"
+    "test:opportunities": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/opportunities/*.test.mjs",
+    "test:landed-cost": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/landed-cost/*.test.mjs tests/compliance/*.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

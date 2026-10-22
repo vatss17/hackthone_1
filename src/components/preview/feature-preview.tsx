@@ -17,6 +17,7 @@ export function FeaturePreview({
   needs,
   sources,
   next,
+  topBar,
   children,
 }: {
   eyebrow: string;
@@ -27,10 +28,12 @@ export function FeaturePreview({
   sources: string[];
   next: { href: string; label: string; note: string };
   children?: React.ReactNode;
+  topBar?: React.ReactNode;
 }) {
   return (
     <>
       <PageHeader eyebrow={eyebrow} title={title} description={intro} action={<StatusBadge kind="planned" />} />
+      {topBar}
       <div className="mt-6 rounded-md border border-dashed border-input/60 bg-card px-4 py-3 text-sm sm:px-5">
         <span className="font-medium">Preview.</span> This step is not built yet. Nothing on this page is a result, a quote or advice. It shows what the step will do so you can see where your information leads.
       </div>

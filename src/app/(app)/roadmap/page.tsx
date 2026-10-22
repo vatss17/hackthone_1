@@ -5,12 +5,19 @@ import { StatusBadge } from "@/components/status-badge";
 import { FeaturePreview } from "@/components/preview/feature-preview";
 import { requireOrganization } from "@/lib/organization";
 import { loadEngineInput } from "@/lib/capabilities";
+import { resolveSubject } from "@/lib/subject";
+import { JourneyBar } from "@/components/journey-bar";
+import { RoadmapActions } from "@/components/feasibility/client-parts";
+import { sampleInputs } from "@/lib/landed-cost/defaults";
+import { allItemIds, familyForEntry } from "@/lib/compliance/content";
 
 export const metadata: Metadata = { title: "Export Readiness Roadmap · Export Enablement Platform" };
 export const instant = false;
 
-export default async function RoadmapPage() {
+export default async function RoadmapPage({ searchParams }: PageProps<"/roadmap">) {
   const { organization } = await requireOrganization();
+  const subject = await resolveSubject(organization.id, (await searchParams).product);
+  const family = familyForEntry(subject?.entry?.id);
   const { counts, factories } = await loadEngineInput(organization.id);
   const profileHref = factories[0] ? `/factories/${factories[0].id}` : "/factories";
   const steps = [
@@ -24,14 +31,16 @@ export default async function RoadmapPage() {
   const done = steps.filter((s) => s.done).length;
   const later = [
     { label: "Explore a product's export potential", href: "/opportunities", note: "Available now" },
-    { label: "Estimate landed cost and margin", href: "/viability", note: "Preview" },
-    { label: "Screen compliance and plan testing", href: "/compliance", note: "Preview" },
-    { label: "Check CEPA and incentives", href: "/schemes", note: "Preview" },
+    { label: "Estimate landed cost and margin", href: "/viability", note: "Available now" },
+    { label: "Review export feasibility", href: "/feasibility", note: "Available now" },
+    { label: "Screen compliance and plan testing", href: "/compliance", note: "First-pass questions" },
+    { label: "Check CEPA and incentives", href: "/schemes", note: "First-pass questions" },
     { label: "Prepare export documents", href: "/documentation", note: "Preview" },
     { label: "Request expert help for gaps", href: "/services", note: "Preview" },
   ];
   return (
     <FeaturePreview
+      topBar={<JourneyBar current="roadmap" reference={subject?.ref ?? null} />}
       eyebrow="Export Readiness Roadmap"
       title="Your path to a first export"
       intro="This step will turn everything the platform learns into a prioritised action plan with progress you can track and share. The profile steps below are real and reflect your saved records."
@@ -43,11 +52,36 @@ export default async function RoadmapPage() {
       needs={[
         { label: "A completed factory profile", kind: done === steps.length ? "user" : "missing", note: `${done} of ${steps.length} profile steps done.` },
         { label: "A product under investigation", kind: counts.products > 0 ? "user" : "missing", note: "Chosen from Export Opportunities." },
-        { label: "Results from cost, compliance and document steps", kind: "missing", note: "Those steps are previews today." },
+        { label: "Results from the document steps", kind: "missing", note: "Export documents are a preview today. Cost and screening results feed the actions above." },
       ]}
       sources={["Verified requirements and costs that rank the actions", "Expert review status of each item"]}
       next={{ href: "/opportunities", label: "Go to Export Opportunities", note: "The fastest way to move forward today is to explore a product." }}
     >
+      {subject && (
+        <section className="mt-10" aria-labelledby="prod-h">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="prod-h" className="text-lg font-semibold tracking-tight">
+              Next actions for {subject.name}
+            </h2>
+            <StatusBadge kind="inferred" />
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">Ordered from the things that unlock the most. Progress reflects what you have done in the calculator and screening pages in this browser.</p>
+          <RoadmapActions
+            scope={organization.id}
+            assessmentRef={subject.ref}
+            defaults={sampleInputs({ ...subject.facts, label: subject.name })}
+            productRef={subject.ref}
+            hasProduct
+            checksTotal={family ? allItemIds(family).length : 0}
+          />
+          <p className="mt-3 text-sm">
+            <Link href={`/feasibility/${subject.ref}`} className="font-medium text-primary underline-offset-4 hover:underline">
+              Back to the feasibility workspace
+            </Link>
+          </p>
+        </section>
+      )}
+
       <section className="mt-10" aria-labelledby="steps-h">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="steps-h" className="text-lg font-semibold tracking-tight">
