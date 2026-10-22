@@ -47,3 +47,7 @@ next-env.d.ts
 /supabase/.temp/
 /supabase/.branches/
 .env.keys
+
+# Restricted third-party data and images that show it (UN Comtrade). Never commit: see docs/trade-data-source.md
+/src/data/restricted/
+/docs/screenshots/restricted/

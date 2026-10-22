@@ -7,6 +7,7 @@ import { discover, matchEntry } from "@/lib/opportunities/engine";
 import { itemsFor, familyForEntry } from "@/lib/compliance/content";
 import { sampleInputs } from "@/lib/landed-cost/defaults";
 import type { Inputs } from "@/lib/landed-cost/types";
+import type { CatalogueEntry, MatchResult } from "@/lib/opportunities/types";
 import type { WorkspaceFacts } from "@/lib/workspace/types";
 
 /**
@@ -18,7 +19,7 @@ import type { WorkspaceFacts } from "@/lib/workspace/types";
 export async function loadWorkspaceFacts(
   org: { id: string; name: string; legalName: string | null },
   ref: string,
-): Promise<{ facts: WorkspaceFacts; subject: Subject | null; defaults: Inputs; familyId: string | null }> {
+): Promise<{ facts: WorkspaceFacts; subject: Subject | null; defaults: Inputs; familyId: string | null; entry: CatalogueEntry | null; match: MatchResult | null }> {
   const standalone = ref === "standalone";
   const subject = standalone ? null : await resolveSubject(org.id, ref);
   if (!standalone && !subject) notFound();
@@ -86,5 +87,5 @@ export async function loadWorkspaceFacts(
     questions,
     opportunities: { count: found.adjacent.length, top: found.adjacent.slice(0, 3).map((m) => ({ id: m.entry.id, name: m.entry.name, score: m.score })) },
   };
-  return { facts, subject, defaults: sampleInputs(subject ? { ...subject.facts, label: subject.name } : undefined), familyId: family?.id ?? null };
+  return { facts, subject, defaults: sampleInputs(subject ? { ...subject.facts, label: subject.name } : undefined), familyId: family?.id ?? null, entry, match };
 }

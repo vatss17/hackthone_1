@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export type JourneyStep = "workspace" | "profile" | "opportunities" | "explore" | "cost" | "scenarios" | "feasibility" | "roadmap" | "documents" | "expert";
+export type JourneyStep = "workspace" | "profile" | "opportunities" | "explore" | "evidence" | "cost" | "scenarios" | "feasibility" | "roadmap" | "documents" | "expert";
 
 /**
  * The export journey as one strip, so every page in it shows where you are and lets you move on
@@ -15,6 +15,7 @@ export function JourneyBar({ current, reference }: { current: JourneyStep; refer
     { id: "profile", label: "Catalogue", href: "/products" },
     { id: "opportunities", label: "Opportunities", href: "/opportunities" },
     { id: "explore", label: "Explore", href: q ? `/opportunities/${q}` : "/opportunities" },
+    { id: "evidence", label: "UAE evidence", href: q ? `/opportunities/${q}#uae` : "/evidence" },
     { id: "cost", label: "Landed cost", href: q ? `/viability?product=${q}#inputs` : "/viability#inputs" },
     { id: "scenarios", label: "Scenarios", href: q ? `/viability?product=${q}#scenarios` : "/viability#scenarios" },
     { id: "feasibility", label: "Feasibility", href: `/feasibility/${q ?? "standalone"}` },

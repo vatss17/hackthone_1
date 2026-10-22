@@ -13,6 +13,7 @@ export type StatusKind =
   | "inferred"
   | "assumption"
   | "quoted"
+  | "reported"
   | "unknown"
   | "expert"
   | "missing"
@@ -49,6 +50,11 @@ const styles: Record<StatusKind, { label: string; className: string }> = {
     label: "Inferred",
     className:
       "bg-(--status-ai-bg) text-(--status-ai-fg) border-(--status-ai-border)",
+  },
+  reported: {
+    label: "Reported data",
+    className:
+      "bg-(--status-verified-bg) text-(--status-verified-fg) border-(--status-verified-border)",
   },
   quoted: {
     label: "Quote held",

@@ -31,7 +31,9 @@ export interface SuggestedProduct {
   materials: { code: MaterialCode | null; label: string }[];
   specs: ExtractedSpec[];
   /** Which fields came straight from the file ("file") and which a rule suggested ("rule"). */
-  source: Partial<Record<"category" | "materials", "file" | "rule">>;
+  source: Partial<Record<"category" | "materials", "file" | "rule" | "ai">>;
+  /** True when an AI model suggested these values (only ever set by validated AI output). */
+  aiSuggested?: boolean;
   confidence: "high" | "medium" | "low";
   /** Plain-language notes about things dropped or guessed. */
   notes: string[];

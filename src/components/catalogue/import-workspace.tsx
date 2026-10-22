@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Notice } from "@/components/auth/notice";
 import { StatusBadge } from "@/components/status-badge";
 import { importProducts, type ImportResult } from "@/lib/actions/catalogue-import";
+import { extractWithAi } from "@/lib/actions/ai";
+import type { AiStatus } from "@/lib/ai/provider";
 import { DEMO_CATALOGUE, LIMITS, parseCatalogue, parseMaterialField, type SuggestedProduct } from "@/lib/catalogue/parse";
 import { cn } from "@/lib/utils";
 
@@ -28,9 +30,10 @@ type Draft = {
   notes: string[];
   duplicate: "catalogue" | "file" | null;
   edited: string[];
+  ai: boolean;
 };
 
-type Origin = "file" | "paste" | "demo";
+type Origin = "file" | "paste" | "demo" | "ai";
 
 const toDraft = (p: SuggestedProduct, existing: Set<string>): Draft => {
   const dup = existing.has(p.name.toLowerCase()) ? "catalogue" : p.duplicateInFile ? "file" : null;
@@ -51,10 +54,11 @@ const toDraft = (p: SuggestedProduct, existing: Set<string>): Draft => {
     notes: p.notes,
     duplicate: dup,
     edited: [],
+    ai: p.aiSuggested === true,
   };
 };
 
-export function ImportWorkspace({ factories, existingNames }: { factories: { id: string; name: string }[]; existingNames: string[] }) {
+export function ImportWorkspace({ factories, existingNames, ai }: { factories: { id: string; name: string }[]; existingNames: string[]; ai: AiStatus }) {
   const [stage, setStage] = useState<"input" | "review" | "done">("input");
   const [pasted, setPasted] = useState("");
   const [busy, setBusy] = useState(false);
@@ -65,18 +69,44 @@ export function ImportWorkspace({ factories, existingNames }: { factories: { id:
   const [fileName, setFileName] = useState<string | null>(null);
   const [factoryIds, setFactoryIds] = useState<string[]>(factories.length === 1 ? [factories[0].id] : []);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [useAi, setUseAi] = useState(false);
+  const [aiConsent, setAiConsent] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const [aiMeta, setAiMeta] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
   const existing = new Set(existingNames.map((n) => n.toLowerCase()));
 
-  const run = (text: string, o: Origin, pdf: boolean, name: string | null) => {
+  const run = async (text: string, o: Origin, pdf: boolean, name: string | null) => {
     const out = parseCatalogue(text, { fromPdf: pdf });
-    setWarnings([...out.warnings, ...(out.skippedBlocks > 0 ? [`${out.skippedBlocks} block${out.skippedBlocks === 1 ? "" : "s"} of text did not look like products and were left out.`] : [])]);
-    setDrafts(out.products.map((p) => toDraft(p, existing)));
-    setOrigin(o);
+    const notes = [...out.warnings, ...(out.skippedBlocks > 0 ? [`${out.skippedBlocks} block${out.skippedBlocks === 1 ? "" : "s"} of text did not look like products and were left out.`] : [])];
+    let products = out.products;
+    let origin: Origin = o;
+    setAiNote(null);
+    setAiMeta(null);
+
+    // Optional AI reading. It only runs if it is switched on, the person asked for it and consented.
+    // Whatever it returns was validated on the server and is shown for review, like everything else.
+    if (useAi && aiConsent && ai.configured) {
+      setBusy(true);
+      const r = await extractWithAi(text, true);
+      setBusy(false);
+      if (r.ok && r.products.length > 0) {
+        products = r.products;
+        origin = "ai";
+        setAiMeta(`${r.provider} · ${r.model}`);
+        if (r.rejected.length > 0) notes.push(`AI named ${r.rejected.length} product${r.rejected.length === 1 ? "" : "s"} that could not be checked against your text, so ${r.rejected.length === 1 ? "it was" : "they were"} discarded.`);
+      } else {
+        setAiNote(r.ok ? "AI found no usable products, so the rule-based reading is shown instead." : `${r.error} The rule-based reading is shown instead.`);
+      }
+    }
+
+    setWarnings(notes);
+    setDrafts(products.map((p) => toDraft(p, existing)));
+    setOrigin(origin);
     setFileName(name);
-    if (out.products.length === 0) {
-      setError(out.warnings[0] ?? "No products could be picked out of that.");
+    if (products.length === 0) {
+      setError(notes[0] ?? "No products could be picked out of that.");
       return;
     }
     setError(null);
@@ -94,11 +124,11 @@ export function ImportWorkspace({ factories, existingNames }: { factories: { id:
         if (f.size > MAX_PDF_BYTES) throw new Error("That PDF is larger than 8 MB.");
         const { text, truncated } = await extractPdfText(new Uint8Array(await f.arrayBuffer()));
         if (text.trim().length < 20) throw new Error("No readable text was found in that PDF. Scanned pages need text recognition, which is not available yet. Try a CSV or paste the text.");
-        run(text, "file", true, f.name);
+        await run(text, "file", true, f.name);
         if (truncated) setWarnings((w) => [...w, "Only the first pages of the PDF were read."]);
       } else if (/\.(csv|tsv|txt|md|text)$/.test(lower) || f.type.startsWith("text/") || f.type === "application/vnd.ms-excel") {
         if (f.size > 2 * 1024 * 1024) throw new Error("That file is larger than 2 MB.");
-        run(await f.text(), "file", false, f.name);
+        await run(await f.text(), "file", false, f.name);
       } else {
         throw new Error("That file type is not supported yet. Use CSV, TXT, Markdown or PDF. For a spreadsheet, save it as CSV first.");
       }
@@ -141,6 +171,7 @@ export function ImportWorkspace({ factories, existingNames }: { factories: { id:
   const badge = (d: Draft, field: "category" | "materials" | string, filled: boolean) => {
     if (d.edited.includes(field)) return <StatusBadge kind="user" />;
     if (!filled) return null;
+    if (d.ai) return <StatusBadge kind="ai" />;
     if ((field === "category" || field === "materials") && d.source[field] === "rule") return <StatusBadge kind="inferred" />;
     return <StatusBadge kind="user" />;
   };
@@ -202,14 +233,24 @@ export function ImportWorkspace({ factories, existingNames }: { factories: { id:
             </h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
               {origin === "demo" ? "From the demo sample catalogue. " : fileName ? `From ${fileName}. ` : "From the text you pasted. "}
-              Picked out by <span className="font-medium text-foreground">rules, not AI</span>. Nothing is saved until you press Save.
+              {origin === "ai" ? (
+                <>
+                  Suggested by <span className="font-medium text-foreground">AI</span> ({aiMeta}) and checked against your text. AI never saves anything: review every field.
+                </>
+              ) : (
+                <>
+                  Picked out by <span className="font-medium text-foreground">rules, not AI</span>.
+                </>
+              )}{" "}
+              Nothing is saved until you press Save.
             </p>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {origin === "demo" && <StatusBadge kind="demo" />}
-            <StatusBadge kind="inferred" />
+            <StatusBadge kind={origin === "ai" ? "ai" : "inferred"} />
           </div>
         </div>
+        {aiNote && <Notice tone="info">{aiNote}</Notice>}
         {warnings.length > 0 && (
           <Notice tone="info">
             <ul className="list-disc space-y-0.5 pl-4">
@@ -397,7 +438,7 @@ export function ImportWorkspace({ factories, existingNames }: { factories: { id:
           </div>
           <p className="mt-1 text-sm text-muted-foreground">A short fictional catalogue for the presentation. It is read by the same rules as your own files, and it is not live AI.</p>
           <div className="mt-auto pt-4">
-            <Button type="button" variant="outline" onClick={() => run(DEMO_CATALOGUE, "demo", false, null)}>
+            <Button type="button" variant="outline" disabled={busy} onClick={() => void run(DEMO_CATALOGUE, "demo", false, null)}>
               Load the demo catalogue
             </Button>
           </div>
@@ -405,11 +446,43 @@ export function ImportWorkspace({ factories, existingNames }: { factories: { id:
         <section className="flex flex-col rounded-md border border-dashed border-input/60 bg-card p-4 sm:p-5" aria-labelledby="ai-h">
           <div className="flex items-start justify-between gap-2">
             <h2 id="ai-h" className="text-base font-semibold">
-              AI-assisted reading
+              3. AI-assisted reading
             </h2>
-            <StatusBadge kind="planned" />
+            <StatusBadge kind={ai.configured ? "ai" : "planned"} />
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Not switched on. It needs an approved AI provider and a data-processing decision first. Until then every suggestion comes from simple rules and is labelled that way.</p>
+          {ai.configured ? (
+            <>
+              <p className="mt-1 text-sm text-muted-foreground">Optional. AI can read less tidy catalogues and suggest descriptions and materials. It only sees what you send, and every suggestion is checked and shown for review.</p>
+              <label className="mt-3 flex items-start gap-2 text-sm">
+                <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={useAi} onChange={(e) => setUseAi(e.target.checked)} />
+                <span>Also read my catalogue with AI</span>
+              </label>
+              {useAi && (
+                <label className="mt-2 flex items-start gap-2 text-sm">
+                  <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={aiConsent} onChange={(e) => setAiConsent(e.target.checked)} />
+                  <span>
+                    I agree that the catalogue text I choose is sent to <span className="font-medium">{ai.provider}</span> ({ai.model}) for this.
+                  </span>
+                </label>
+              )}
+              <p className="mt-2 text-xs text-muted-foreground">If AI fails or is off, the rule-based reading is used.</p>
+            </>
+          ) : (
+            <>
+              <p className="mt-1 text-sm text-muted-foreground">Not switched on. Until it is, every suggestion comes from simple rules and is labelled that way.</p>
+              <details className="mt-2 text-xs text-muted-foreground">
+                <summary className="cursor-pointer font-medium text-foreground">What the operator needs to set</summary>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                  {ai.missing.map((m) => (
+                    <li key={m} className="font-mono">
+                      {m}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1">Server settings only. Keys are never entered in the app.</p>
+              </details>
+            </>
+          )}
         </section>
       </div>
 
@@ -431,7 +504,7 @@ export function ImportWorkspace({ factories, existingNames }: { factories: { id:
           className="mt-3 min-h-40 w-full rounded-md border border-input bg-card px-3 py-2 font-mono text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
         />
         <div className="mt-3">
-          <Button type="button" disabled={pasted.trim().length < 3} onClick={() => run(pasted, "paste", false, null)}>
+          <Button type="button" disabled={busy || pasted.trim().length < 3 || (useAi && !aiConsent)} onClick={() => void run(pasted, "paste", false, null)}>
             Find the products
           </Button>
         </div>

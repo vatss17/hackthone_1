@@ -6,6 +6,9 @@ import { JourneyBar } from "@/components/journey-bar";
 import { WorkspaceOverview } from "@/components/workspace/workspace-overview";
 import { requireOrganization } from "@/lib/organization";
 import { loadWorkspaceFacts } from "@/lib/workspace-facts";
+import { evidenceForEntry } from "@/lib/trade/evidence";
+import { ProductExplanationPanel } from "@/components/explain/product-explanation";
+import { aiStatus } from "@/lib/ai/provider";
 
 export const metadata: Metadata = { title: "Export Workspace · Export Enablement Platform" };
 export const instant = false;
@@ -13,7 +16,7 @@ export const instant = false;
 export default async function WorkspacePage({ params }: PageProps<"/workspace/[ref]">) {
   const { organization } = await requireOrganization();
   const { ref } = await params;
-  const { facts, defaults } = await loadWorkspaceFacts(organization, ref);
+  const { facts, defaults, entry, match } = await loadWorkspaceFacts(organization, ref);
   return (
     <>
       <PageHeader
@@ -28,6 +31,9 @@ export default async function WorkspacePage({ params }: PageProps<"/workspace/[r
       />
       <JourneyBar current="workspace" reference={facts.standalone ? null : facts.ref} />
       <WorkspaceOverview scope={organization.id} facts={facts} defaults={defaults} />
+      <div className="mt-10">
+        <ProductExplanationPanel scope={organization.id} facts={facts} defaults={defaults} entry={entry} match={match} ai={aiStatus(process.env)} evidence={evidenceForEntry(entry?.id)} />
+      </div>
     </>
   );
 }

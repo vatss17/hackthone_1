@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { JourneyBar } from "@/components/journey-bar";
+import { TradeEvidencePanel } from "@/components/evidence/trade-panel";
+import { evidenceForEntry } from "@/lib/trade/evidence";
 import { Chip, FitMeter, LabelledList } from "@/components/opportunities/parts";
 import { CostSnapshot, ExecutiveSummaryCard, MissingAndNext, PrintButton, SixQuestions } from "@/components/feasibility/client-parts";
 import { requireOrganization } from "@/lib/organization";
@@ -17,7 +19,6 @@ import { ALL_SECTIONS, allItemIds, familyForEntry, itemsFor, EVIDENCE_ORDER, typ
 export const metadata: Metadata = { title: "Export feasibility · Export Enablement Platform" };
 export const instant = false;
 
-const DEMAND = { broad: "Broad", moderate: "Moderate", niche: "Niche" } as const;
 
 export default async function FeasibilityPage({ params }: PageProps<"/feasibility/[ref]">) {
   const { organization } = await requireOrganization();
@@ -90,35 +91,28 @@ export default async function FeasibilityPage({ params }: PageProps<"/feasibilit
       <section className="mt-10" aria-labelledby="mkt-h">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="mkt-h" className="text-lg font-semibold tracking-tight">
-            UAE market opportunity summary
+            UAE market evidence
           </h2>
-          <div className="flex gap-1.5">
-            <StatusBadge kind="inferred" />
-            <StatusBadge kind="demo" />
-          </div>
+          <StatusBadge kind="reported" />
         </div>
-        {entry ? (
-          <div className="mt-3 rounded-md border bg-card p-4 sm:p-5">
-            <div className="grid gap-5 md:grid-cols-2">
-              <LabelledList title="Why it may be worth investigating" items={entry.whyUae} />
-              <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Buyer industries (categories, not companies)</h4>
-                <ul className="mt-1.5 flex flex-wrap gap-1.5">
-                  {entry.industries.map((x) => (
-                    <Chip key={x.name}>{x.name}</Chip>
-                  ))}
-                </ul>
-                <p className="mt-3 flex items-center gap-2 text-sm">
-                  <StatusBadge kind="demo" />
-                  Illustrative demand signal: {DEMAND[entry.demandSignal]}. A placeholder, not market data.
-                </p>
+        <div className="mt-3 space-y-4">
+          {entry && (
+            <div className="rounded-md border bg-card p-4 sm:p-5">
+              <div className="grid gap-5 md:grid-cols-2">
+                <LabelledList title="Why it may be worth investigating (hypotheses)" items={entry.whyUae} />
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Buyer industries (categories, not companies)</h4>
+                  <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                    {entry.industries.map((x) => (
+                      <Chip key={x.name}>{x.name}</Chip>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">Verified UAE import volumes, supplier countries and price levels are not connected, so nothing here tests your selling price against the market.</p>
-          </div>
-        ) : (
-          <p className="mt-3 rounded-md border border-dashed border-input/60 bg-card px-4 py-3 text-sm text-muted-foreground">No market view is available without a product type. UAE demand data is not connected in any case.</p>
-        )}
+          )}
+          <TradeEvidencePanel evidence={evidenceForEntry(entry?.id)} />
+        </div>
       </section>
 
       {/* ---------------- gaps ---------------- */}

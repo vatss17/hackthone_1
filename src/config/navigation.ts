@@ -64,6 +64,14 @@ export const navigation: NavItem[] = [
     description: "Opportunities for your products, and what else your factory could make.",
   },
   {
+    id: "evidence",
+    label: "UAE Market Evidence",
+    href: "/evidence",
+    status: "available",
+    group: "journey",
+    description: "Reported UAE trade values for the plastic product headings behind your opportunities.",
+  },
+  {
     id: "viability",
     label: "Landed Cost & Viability",
     href: "/viability",

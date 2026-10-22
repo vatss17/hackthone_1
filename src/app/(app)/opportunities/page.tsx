@@ -24,7 +24,7 @@ export default async function OpportunitiesPage() {
       <PageHeader
         eyebrow="Export Opportunities"
         title="What could you take to the UAE?"
-        description="Starting from what your factory can actually do, the platform shows products you already make and products your machines, materials and processes could also make, and helps you investigate each one."
+        description="Starting from what your factory can actually do, the platform shows products you already make and products your machines, materials and processes could also make. Each one is judged on four separate things: manufacturing fit, UAE demand evidence, commercial feasibility and regulatory readiness. They are never merged into one score."
       />
 
       <section className="mt-6 rounded-md border bg-card p-4 sm:p-5" aria-labelledby="basis-h">
@@ -59,7 +59,7 @@ export default async function OpportunitiesPage() {
             <StatusBadge kind="inferred" /> <span className="ml-1">Worked out by transparent rules from your data.</span>
           </p>
           <p>
-            <StatusBadge kind="demo" /> <span className="ml-1">Illustrative sample, never real market data.</span>
+            <StatusBadge kind="reported" /> <span className="ml-1">Reported trade data, a dated snapshot. Not live, not demand.</span>
           </p>
           <p>
             <StatusBadge kind="missing" /> <span className="ml-1">Needed but not yet connected or provided.</span>
@@ -151,7 +151,7 @@ export default async function OpportunitiesPage() {
           <summary className="cursor-pointer font-medium">How these suggestions are worked out</summary>
           <div className="mt-3 space-y-3 text-muted-foreground">
             <p>
-              Each product in a hand-written starter catalogue ({CATALOGUE_VERSION}) is compared with your profile using fixed rules. The score covers capability fit only: processes {WEIGHTS.processes}, materials {WEIGHTS.materials}, machinery{" "}
+              Each product in a hand-written starter catalogue ({CATALOGUE_VERSION}) is compared with your profile using fixed rules. The 0 to 100 score covers manufacturing fit only: processes {WEIGHTS.processes}, materials {WEIGHTS.materials}, machinery{" "}
               {WEIGHTS.machines}, capacity {WEIGHTS.capacity}, and closeness to what you make {WEIGHTS.adjacency}, out of 100. Strong is {THRESHOLDS.strong} and above, good {THRESHOLDS.good} and above, possible {THRESHOLDS.possible} and above. Products that need a
               process you have not declared are shown separately as stretch options.
             </p>
@@ -178,7 +178,7 @@ export default async function OpportunitiesPage() {
             <ul className="grid gap-5">
               {d.adjacent.map((m) => (
                 <li key={m.entry.id}>
-                  <OpportunityCard m={m} href={`/opportunities/${m.entry.id}`} />
+                  <OpportunityCard m={m} href={`/opportunities/${m.entry.id}`} scope={organization.id} />
                   <details className="mt-1 px-1 text-sm">
                     <summary className="cursor-pointer py-1 text-xs text-muted-foreground">Show the score breakdown</summary>
                     <div className="mt-1 rounded-md border bg-card p-3">

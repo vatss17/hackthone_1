@@ -4,6 +4,11 @@ import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { JourneyBar } from "@/components/journey-bar";
+import { TradeEvidencePanel } from "@/components/evidence/trade-panel";
+import { ProductExplanationPanel } from "@/components/explain/product-explanation";
+import { evidenceForEntry } from "@/lib/trade/evidence";
+import { aiStatus } from "@/lib/ai/provider";
+import { loadWorkspaceFacts } from "@/lib/workspace-facts";
 import { StatusBadge } from "@/components/status-badge";
 import { Chip, FitMeter, LabelledList, ScoreBreakdown } from "@/components/opportunities/parts";
 import { requireOrganization } from "@/lib/organization";
@@ -16,7 +21,6 @@ import type { CatalogueEntry, MatchResult } from "@/lib/opportunities/types";
 export const metadata: Metadata = { title: "Explore export potential · Export Enablement Platform" };
 export const instant = false;
 
-const DEMAND_LABEL = { broad: "Broad", moderate: "Moderate", niche: "Niche" } as const;
 const EFFORT_LABEL = { lighter: "lighter", moderate: "moderate", heavier: "heavier" } as const;
 
 function Panel({ id, title, badges, children }: { id: string; title: string; badges?: React.ReactNode; children: React.ReactNode }) {
@@ -57,6 +61,7 @@ export default async function ExplorePage({ params }: PageProps<"/opportunities/
   }
 
   const { input } = await loadEngineInput(organization.id);
+  const wf = await loadWorkspaceFacts(organization, ref);
   const match = entry ? matchEntry(entry, input) : null;
   const v = verdict(match);
   const title = product?.name ?? entry!.name;
@@ -86,6 +91,10 @@ export default async function ExplorePage({ params }: PageProps<"/opportunities/
           <StatusBadge kind={product ? "user" : "inferred"} />
           <span className="text-xs text-muted-foreground">{product ? "Your own product." : "Suggested from your capabilities."}</span>
         </div>
+      </div>
+
+      <div className="mt-8">
+        <ProductExplanationPanel scope={organization.id} facts={wf.facts} defaults={wf.defaults} entry={wf.entry} match={wf.match} ai={aiStatus(process.env)} evidence={evidenceForEntry(wf.entry?.id)} />
       </div>
 
       {/* ---------------- overview ---------------- */}
@@ -167,37 +176,27 @@ export default async function ExplorePage({ params }: PageProps<"/opportunities/
       </Panel>
 
       {/* ---------------- UAE summary ---------------- */}
-      <Panel id="uae" title="UAE opportunity summary" badges={<><StatusBadge kind="inferred" /><StatusBadge kind="demo" /></>}>
-        {entry ? (
-          <div className="space-y-5">
-            <LabelledList title="Why it may be worth investigating" items={entry.whyUae} />
-            <div className="rounded-md border border-dashed border-amber/60 p-3 text-sm">
-              <p className="flex flex-wrap items-center gap-2">
-                <StatusBadge kind="demo" />
-                <span className="font-medium">Illustrative demand signal: {DEMAND_LABEL[entry.demandSignal]}</span>
-              </p>
-              <p className="mt-1 text-muted-foreground">A placeholder to show where real import data will appear. It is not a measurement of UAE demand.</p>
-            </div>
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">What we cannot tell you yet</h4>
-              <ul className="mt-2 divide-y rounded-md border">
-                {[
-                  "Verified UAE import volumes and values for this product",
-                  "Which countries already supply it, and at what price levels",
-                  "Applicable duty and tax treatment",
-                  "Whether your price could compete after freight and duties",
-                ].map((t) => (
-                  <li key={t} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
-                    <span>{t}</span>
-                    <StatusBadge kind="missing" />
-                  </li>
-                ))}
-              </ul>
-            </div>
+      <Panel id="uae" title="UAE market evidence" badges={<><StatusBadge kind="reported" /><StatusBadge kind="inferred" /></>}>
+        <div className="space-y-5">
+          {entry && <LabelledList title="Why it may be worth investigating (hypotheses to test)" items={entry.whyUae} />}
+          <TradeEvidencePanel evidence={evidenceForEntry(entry?.id)} />
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">What this evidence cannot tell you</h4>
+            <ul className="mt-2 divide-y rounded-md border">
+              {[
+                "Whether buyers would pay your price after freight and duty",
+                "Which countries compete in your exact product, and at what unit prices",
+                "The duty and tax treatment for your tariff line",
+                "Whether your product would meet UAE technical requirements",
+              ].map((t) => (
+                <li key={t} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <span>{t}</span>
+                  <StatusBadge kind="missing" />
+                </li>
+              ))}
+            </ul>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">No product-type guidance is available for this product yet. Verified UAE import data, supplier countries and duty treatment are all still to be connected.</p>
-        )}
+        </div>
       </Panel>
 
       {/* ---------------- buyers ---------------- */}

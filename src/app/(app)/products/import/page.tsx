@@ -5,6 +5,7 @@ import { Notice } from "@/components/auth/notice";
 import { requireOrganization } from "@/lib/organization";
 import { listFactories } from "@/lib/factories";
 import { listProducts } from "@/lib/capabilities";
+import { aiStatus } from "@/lib/ai/provider";
 
 export const metadata: Metadata = { title: "Import product catalogue · Export Enablement Platform" };
 export const instant = false;
@@ -23,7 +24,7 @@ export default async function ImportPage() {
         {organization.role !== "owner" ? (
           <Notice tone="error">Only company owners can add products.</Notice>
         ) : (
-          <ImportWorkspace factories={active.map((f) => ({ id: f.id, name: f.name }))} existingNames={products.map((p) => p.name)} />
+          <ImportWorkspace factories={active.map((f) => ({ id: f.id, name: f.name }))} existingNames={products.map((p) => p.name)} ai={aiStatus(process.env)} />
         )}
       </div>
     </>

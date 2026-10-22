@@ -1,6 +1,6 @@
 # Post-demo roadmap
 
-Status after **Demo Sprint 3** (the Effortless Export Copilot), building on Sprint 2 (the Export Feasibility Engine) and Sprint 1 (the Manufacturer Intelligence Workspace). This file tracks every original MVP module so nothing is silently dropped. "Built" means working with real saved records. "Preview" means a real page that honestly describes the step without producing results. "Deferred" means nothing exists yet.
+Status after **Demo Sprint 4** (AI intelligence and UAE market evidence), building on Sprint 3 (the Effortless Export Copilot), Sprint 2 (the Export Feasibility Engine) and Sprint 1 (the Manufacturer Intelligence Workspace). This file tracks every original MVP module so nothing is silently dropped. "Built" means working with real saved records. "Preview" means a real page that honestly describes the step without producing results. "Deferred" means nothing exists yet.
 
 Motto: **make exporting effortless for manufacturers.**
 
@@ -13,9 +13,9 @@ Out of scope for the MVP, unchanged: marketplace and buyer matching, payments, c
 | 1 | Accounts and company | Built: sign-up, sign-in, company registration, owner/member roles, company isolation | Custom email sender and the real email-confirmation journey; invitations and extra members; staff/admin console; password and session policy review |
 | 2 | Factory profile | Built: factories, processes, process-specific and factory-wide capacity, machinery with ratings, materials incl. custom entries | Machine utilisation and shifts; certifications of the factory; photos; multiple units per site |
 | 3 | Product catalogue | **Built (Sprints 1 and 3):** products with category, intended use, description, specifications, materials, factory association, claimed HS code (unverified); **catalogue import** from CSV, text, Markdown and PDF text, with review, correction and rejection before saving; all read in the browser by rules, nothing uploaded or stored | Product material composition screens (shares of each material); packaging and carton screens; product certifications UI; Excel (.xlsx) and image import; bulk edit |
-| 4 | Capability-to-Opportunity Intelligence | Built: transparent rules engine, 17-product starter catalogue, "Your Products" and "What Else Could You Make?", explanation and gaps | Larger and reviewed catalogue; AI-assisted suggestions with evidence; learning from accepted and rejected suggestions; verified trade data in the score |
+| 4 | Capability-to-Opportunity Intelligence | **Built (Sprints 1 and 4):** transparent rules engine, 17-product catalogue, and from Sprint 4 four **separate** assessments per product (manufacturing fit, UAE demand evidence, commercial feasibility, regulatory readiness) with tooling, supporting machinery, customer industries and unverified assumptions. A deterministic "why the platform is showing you this" explanation is always available | Larger and reviewed catalogue; AI enrichment switched on once a provider is approved; learning from accepted and rejected suggestions; 6-digit HS evidence |
 | 5 | Product exploration | Built: one page per product with provenance on every section | Real UAE demand and competitor views once data is connected; saved shortlists and notes |
-| 6 | UAE market intelligence | Preview only. A clearly labelled illustrative demand placeholder exists | Live UAE import data by product code; supplier-country shares; price benchmarks; trend views; data refresh and source citations |
+| 6 | UAE market intelligence | **Framework built, data withheld (Sprints 4 and 4.1):** an evidence layer for seven plastic HS headings with source, period, classification, freshness and limits, and an honest empty state. A local UN Comtrade snapshot can be shown on an opted-in machine only; it is not in the public repository. Market evidence only, not demand | Written permission or a licensed source (the Comtrade licence restricts publication, redistribution and automated download); UAE-side partner detail; 6-digit headings; unit values; competitor countries; refresh process; live data |
 | 7 | Landed cost and commercial viability | **Built (Sprint 2):** working calculator for products, suggested products and standalone use; scenario comparison; sensitivities; break-even and target-margin prices; saved locally in the browser with JSON export and import | Verified UAE tariffs and duty treatment; live or quoted freight rates; a live, dated exchange-rate source; server-side saved assessments shared across devices and team members; more currencies (USD) and Incoterm modelling; import VAT, financing and importer-margin options; PDF report; comparison across several products |
 | 8 | Compliance and qualification | **First pass (Sprint 2):** product-aware screening questions for four plastic product families, every item labelled unverified, with progress you can tick off | Verified rule base from official UAE and GCC sources with passage and retrieval date; product requirement screening that gives answers rather than questions; test and certificate gap list from recorded certificates; expert-reviewed items |
 | 9 | CEPA and incentives | **First pass (Sprint 2):** rules-of-origin questions and Indian export schemes to investigate, for four product families. No eligibility or amounts | India–UAE agreement and rules-of-origin engine from verified texts; bill-of-materials origin tracking; Indian export incentive library with current rates; eligibility screening; certificate-of-origin workflow |
@@ -23,8 +23,8 @@ Out of scope for the MVP, unchanged: marketplace and buyer matching, payments, c
 | 11 | Product evidence | Not started (originally a planned module) | Specifications, test reports and certificates with validity; reviewer verification workflow; evidence labels end to end |
 | 12 | Export readiness roadmap | **Built (Sprint 3):** personalised, product-specific plan in five phases that reacts to completed work and missing information; status, priority, support (data, assumption, unknown) and blockers per task; next best action; manual progress that is never treated as approval | Server-saved progress and due dates; team assignment; readiness report to download and share; learning which steps matter most from real shipments |
 | 13 | Expert assistance | **Built, locally (Sprint 3):** expert brief builder for six topics with context filled in, editable, copy and download, and a hand-kept request lifecycle. **No expert is connected** and nothing is sent by the platform | Expert and laboratory directory; real request delivery with consent; quotes and status tracking; expert-review labels on items; case management |
-| 14 | Document upload and AI extraction | **Partly built (Sprint 3):** catalogue extraction by deterministic rules in the browser; AI-assisted reading is **not enabled** (no provider or approval) | Private file storage with access control; certificates, test reports and catalogues stored and linked; an approved AI provider for extraction, always reviewed by a person; scanned-PDF text recognition; production-grade extraction quality |
-| 15 | AI assistant layer | Deferred. The engine is structured so AI can add suggestions and evidence without changing the rules | AI model integration; evidence-grounded answers with citations; "AI suggested" review workflow; evaluation set and guardrails |
+| 14 | Document upload and AI extraction | **Built, off by default (Sprint 4):** rules-based catalogue reading in the browser, plus a provider adapter, consent step, validators (grounding, no invented HS codes, no compliance claims) and review before saving for **optional AI extraction**. It is not switched on and has not run against a live provider | An approved provider, key and data-processing and hosting decision; private file storage; scanned-PDF text recognition; certificates and test reports; production-grade extraction quality |
+| 15 | AI assistant layer | **Built, off by default (Sprint 4):** optional AI explanations grounded only in supplied facts, with number and claim validation, token and time limits, a per-user hourly cap and consent each time. The deterministic engine stays the source of truth | Live provider enablement and cost controls; evaluation set; evidence-grounded answers with citations; guardrail monitoring |
 | 16 | Admin, case management and operations | Deferred | Staff console; reference-data maintenance (processes, materials, catalogue); verification of certificates; audit viewer; support tools |
 | 17 | Production hardening | Deferred | Hosting-region and privacy review before real confidential documents; backups and recovery; rate limiting; monitoring and alerting; leak-protected passwords (hosted Auth setting); accessibility audit; performance budget; a production Supabase project separate from development; penetration test |
 | 19 | Export Workspace (copilot overview) | **Built (Sprint 3):** one page per product with the next best action, what you have told us, opportunities, commercial feasibility, blockers, roadmap progress, documents and expert requests; progress shown as counts, not a score | Server-saved state; multi-product portfolio view; sharing with advisers |
@@ -46,6 +46,14 @@ Out of scope for the MVP, unchanged: marketplace and buyer matching, payments, c
 - Server-side storage of assessments, task progress, document drafts and expert requests (all live in the user's browser for now)
 - Any expert, laboratory or freight partner (briefs are copied or downloaded and shared by the user)
 - An AI provider (extraction is rule-based)
+
+## Known limitations of the Sprint 4 intelligence layer
+
+- **AI has never run against a live provider.** No provider is configured here, so extraction and explanation are tested with a mocked provider only. Real output quality, latency and cost are unmeasured.
+- The trade data is a dated snapshot. The licence restricts publication and redistribution, and written permission has not been obtained. Keep the repository private and use it for internal demonstration until that is settled.
+- The UAE does not report imports by partner country in this source, so UAE imports from India are not available. India's reported exports are mirror data and are not comparable value for value.
+- Trade values are for broad 4-digit HS headings and the mapping from products to headings is an inference. Furniture (9403) and residual (3926) headings overstate their plastic markets.
+- Opportunity cards show commercial and regulatory status only from this browser's saved assessments.
 
 ## Known limitations of the Sprint 3 copilot
 
@@ -73,6 +81,14 @@ Out of scope for the MVP, unchanged: marketplace and buyer matching, payments, c
 - The "illustrative demand signal" is a placeholder, always shown with a Demo label.
 - A recognised "your product" match uses keywords in names, categories and descriptions, so unusual names fall back to general guidance.
 - Machinery and press sizes are compared only qualitatively (the page asks you to confirm with a toolmaker), because no mould-size data exists.
+
+## Demo Sprint 5 candidates
+
+1. Decide the AI provider, key handling and data-approval policy, then switch AI on and evaluate it against real catalogues.
+2. Resolve the trade-data licence (permission, a licensed subscription or another source), then add 6-digit headings and a refresh process.
+3. Server-side saved state for assessments, tasks, documents and expert requests.
+4. Open the official sources and promote the first screening items to verified.
+5. A real expert or laboratory channel with consent.
 
 ## Demo Sprint 4 candidates (carried from earlier plans)
 
