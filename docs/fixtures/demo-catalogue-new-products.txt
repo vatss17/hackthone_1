@@ -1,0 +1,46 @@
+DEMO SAMPLE CATALOGUE 2 (fictional, for demonstration only)
+
+Product: Plastic Bucket 10L with Handle
+Category: Cleaning and household ware
+Material: HDPE
+Use: Cleaning, car washing and general household use
+Description: Round 10 litre bucket with a steel-reinforced carry handle and pouring spout. Injection moulded.
+Capacity: 10 litres
+Weight: 0.52 kg
+Colour: Blue, red
+Code: BK-10
+
+Product: Screw Cap Closure 28mm
+Category: Caps and closures
+Material: Polypropylene
+Use: Closing beverage and household liquid bottles
+Description: Tamper-evident screw cap, injection moulded in PP, supplied in bags of 5,000.
+Neck size (mm): 28
+Weight: 3.2 g
+Code: CAP-28
+
+Product: Cable Conduit Pipe 32mm
+Category: Cable protection
+Material: HDPE
+Use: Protecting electrical and telecom cable in buildings and underground
+Description: Smooth-bore flexible conduit extruded in HDPE, supplied in 50 metre coils.
+Diameter (mm): 32
+Length (m): 50
+Code: CD-32
+
+Product: Stackable Garden Chair
+Category: Furniture
+Material: PP
+Use: Outdoor seating for gardens, cafes and events
+Description: One-piece stackable chair, UV-stabilised polypropylene, injection moulded.
+Weight: 2.1 kg
+Colour: White, green
+Code: CH-01
+
+Product: Pipe Elbow 90 degree 25mm
+Category: Pipes and fittings
+Material: PP
+Use: Joining plastic water pipe at right angles
+Description: Injection moulded 90 degree elbow fitting for 25 mm water pipe.
+Diameter (mm): 25
+Code: EL-25
