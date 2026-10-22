@@ -19,7 +19,7 @@ export default async function EvidencePage() {
       <PageHeader
         eyebrow="UAE Market Evidence"
         title="What the UAE reports importing in plastics"
-        description="Reported trade values for the plastic product headings behind your opportunities. This is market evidence from a dated public snapshot, not demand for your product and not live data."
+        description={loaded ? "Reported trade values for the plastic product headings behind your opportunities. This is market evidence from a dated public snapshot, not demand for your product and not live data." : "Where UAE trade evidence for the plastic product headings behind your opportunities will appear, with its source and limits. No figures are loaded in this deployment, and none are estimated."}
       />
       <JourneyBar current="evidence" reference={null} />
 
