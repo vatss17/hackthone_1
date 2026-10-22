@@ -105,6 +105,11 @@ export default async function FactoriesPage({ searchParams }: PageProps<"/factor
                     </Button>
                     {isOwner && (
                       <Button asChild variant="outline" size="sm">
+                        <Link href={`/factories/${f.id}/setup`}>Guided setup</Link>
+                      </Button>
+                    )}
+                    {isOwner && (
+                      <Button asChild variant="outline" size="sm">
                         <Link href={`/factories/${f.id}/edit`} aria-label={`Edit ${f.name}`}>
                           Edit
                         </Link>

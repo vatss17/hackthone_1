@@ -64,6 +64,9 @@ export async function ScreeningPage({ kind, searchParams }: { kind: Kind; search
   const defaults = sampleInputs(subject ? { ...subject.facts, label: subject.name } : undefined);
   const shared = { scope: organization.id, assessmentRef: reference, defaults };
   const ids = family ? allItemIds(family) : [];
+  // The first question of each section, in an order that puts the importer, product code and testing ahead of paperwork.
+  const ORDER: Record<Kind, SectionKey[]> = { compliance: ["uaeImport", "hs", "testing", "indianExport"], schemes: ["cepa", "schemes"] };
+  const priority = family ? ORDER[kind].flatMap((sec) => itemsFor(family, sec).slice(0, kind === "schemes" ? 2 : 1)).slice(0, 4) : [];
   const sources = SOURCES.filter((s) => (kind === "compliance" ? ["uae-duty-general", "uae-vat"].includes(s.id) : ["cepa-in-force", "rodtep"].includes(s.id)));
 
   return (
@@ -80,10 +83,9 @@ export async function ScreeningPage({ kind, searchParams }: { kind: Kind; search
       />
       <JourneyBar current="feasibility" reference={subject?.ref ?? null} />
 
-      <div className="mt-5 rounded-md border border-(--status-estimate-border) bg-(--status-estimate-bg) px-4 py-3 text-sm text-(--status-estimate-fg) sm:px-5">
-        <p className="font-medium">Nothing on this page has been verified against a primary official source.</p>
-        <p className="mt-0.5">We could not open the official pages during this build. A few background facts are drawn from secondary sources and marked as such. Treat everything as a prompt to ask an expert or the authority, not as a requirement or an approval.</p>
-      </div>
+      <p className="mt-5 max-w-2xl text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">One thing to know for this whole page:</span> nothing here has been checked against a primary official source. Treat every item as a question to put to an expert or the authority, not as a requirement or an approval.
+      </p>
 
       {!family ? (
         <section className="mt-8" aria-labelledby="fam-h">
@@ -114,37 +116,67 @@ export async function ScreeningPage({ kind, searchParams }: { kind: Kind; search
         </section>
       ) : (
         <>
-          <section className="mt-6 rounded-md border bg-card p-4 sm:p-5" aria-labelledby="ctx-h">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="min-w-0">
-                <h2 id="ctx-h" className="text-base font-semibold tracking-tight">
-                  {subject ? subject.name : family.name}
-                </h2>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  Screening family: <span className="font-medium text-foreground">{family.name}</span>. {family.covers}
-                </p>
-              </div>
-              <StatusBadge kind={subject ? "inferred" : "user"} />
+          <section className="mt-8" aria-labelledby="ctx-h">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 id="ctx-h" className="text-2xl font-medium tracking-tight">
+                {subject ? subject.name : family.name}
+              </h2>
+              <span className="text-sm text-muted-foreground">Screening family: {family.name}</span>
             </div>
-            {subject && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {matched ? "Matched to this family by simple rules from the product type. If that is wrong, choose another family below." : "You chose this family."}{" "}
-                HS code you claimed: {subject.hsCode ? `${subject.hsCode} (unverified)` : "none yet"}.
-              </p>
-            )}
-            <div className="mt-3 border-t pt-3">
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              {family.covers} {subject ? (matched ? "Matched by simple rules from the product type." : "You chose this family.") : ""}
+            </p>
+            <div className="mt-3">
               <Progress {...shared} ids={ids} />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-              {FAMILIES.filter((f) => f.id !== family.id).map((f) => (
-                <Link key={f.id} href={`${copy.path}?${subject ? `product=${subject.ref}&` : ""}family=${f.id}`} className="text-primary underline-offset-4 hover:underline">
-                  Use {f.name} instead
-                </Link>
-              ))}
             </div>
           </section>
 
-          <details className="mt-5 rounded-md border bg-card px-4 py-3 text-sm sm:px-5">
+          <section className="mt-8" aria-labelledby="start-h">
+            <h2 id="start-h" className="text-lg font-medium tracking-tight">
+              Start with these {priority.length}
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">The few questions that unlock the most. Tick one when you have an answer. The rest are one click away.</p>
+            <div className="mt-3">
+              <Checklist {...shared} items={priority} />
+            </div>
+          </section>
+
+          <section className="mt-8 grid gap-4 md:grid-cols-2" aria-label="Where you stand">
+            <div className="rounded-xl border bg-card p-5">
+              <h3 className="text-sm font-medium uppercase tracking-[0.1em] text-muted-foreground">What we know</h3>
+              <ul className="mt-2 list-disc space-y-1 pl-4 text-sm">
+                <li>Your product matches the {family.name.toLowerCase()} family by simple rules.</li>
+                <li>HS code you entered: {subject?.hsCode ? `${subject.hsCode} (unverified)` : "none yet"}.</li>
+                <li>{ids.length} screening questions apply, none verified.</li>
+              </ul>
+            </div>
+            <div className="rounded-xl border bg-card p-5">
+              <h3 className="text-sm font-medium uppercase tracking-[0.1em] text-muted-foreground">What you can do now</h3>
+              <ul className="mt-2 list-disc space-y-1 pl-4 text-sm">
+                <li>Answer the questions you already know, such as your IEC and who clears exports.</li>
+                <li>Ask your UAE buyer who the importer of record is.</li>
+                <li>
+                  <Link href={subject ? `/opportunities/${subject.ref}?stage=3` : "/opportunities"} className="text-primary underline-offset-4 hover:underline">
+                    Narrow down your product code
+                  </Link>
+                  .
+                </li>
+              </ul>
+            </div>
+            <div className="rounded-xl border bg-card p-5 md:col-span-2">
+              <h3 className="text-sm font-medium uppercase tracking-[0.1em] text-muted-foreground">What needs an expert</h3>
+              <p className="mt-2 text-sm">Confirming the product code, UAE technical requirements and CEPA origin rules. The platform cannot settle these.</p>
+              <p className="mt-2 text-sm">
+                <Link href={subject ? `/services?product=${subject.ref}` : "/services"} className="font-medium text-primary underline-offset-4 hover:underline">
+                  Prepare an expert brief
+                </Link>
+              </p>
+            </div>
+          </section>
+
+          <details className="mt-10 rounded-xl border bg-card px-4 py-3 sm:px-5">
+            <summary className="cursor-pointer text-base font-medium">View all requirements ({ids.length})</summary>
+          <details className="mt-4 text-sm">
             <summary className="cursor-pointer font-medium">How to read the labels</summary>
             <ul className="mt-3 space-y-2">
               {EVIDENCE_ORDER.map((e) => (
@@ -159,7 +191,7 @@ export async function ScreeningPage({ kind, searchParams }: { kind: Kind; search
           </details>
 
           {SECTIONS[kind].map((s) => (
-            <section key={s} id={s} className="mt-10 scroll-mt-20" aria-labelledby={`${s}-h`}>
+            <section key={s} id={s} className="mt-8 scroll-mt-20" aria-labelledby={`${s}-h`}>
               <h2 id={`${s}-h`} className="text-lg font-semibold tracking-tight">
                 {SECTION_TITLES[s].title}
               </h2>
@@ -186,6 +218,8 @@ export async function ScreeningPage({ kind, searchParams }: { kind: Kind; search
             </section>
           ))}
 
+          </details>
+
           {kind === "schemes" && (
             <div className="mt-6 rounded-md border bg-card p-4 text-sm sm:p-5">
               <p className="font-medium">Preferential duty in the calculator</p>
@@ -196,10 +230,9 @@ export async function ScreeningPage({ kind, searchParams }: { kind: Kind; search
             </div>
           )}
 
-          <section className="mt-10" aria-labelledby="src-h">
-            <h2 id="src-h" className="text-lg font-semibold tracking-tight">
-              Sources behind the few concrete facts
-            </h2>
+          <details className="mt-8 rounded-xl border bg-card px-4 py-3 sm:px-5">
+            <summary className="cursor-pointer text-sm font-medium">Sources behind the few concrete facts</summary>
+          <div className="mt-3">
             <ul className="mt-3 divide-y rounded-md border bg-card">
               {sources.map((s) => (
                 <li key={s.id} className="px-4 py-3 text-sm sm:px-5">
@@ -218,21 +251,18 @@ export async function ScreeningPage({ kind, searchParams }: { kind: Kind; search
                 </li>
               ))}
             </ul>
-          </section>
+          </div>
 
-          <section className="mt-10 rounded-md border bg-card p-4 sm:p-5" aria-labelledby="go-h">
-            <h2 id="go-h" className="text-base font-semibold tracking-tight">
-              Keep going
-            </h2>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <Button asChild>
-                <Link href={`/feasibility/${subject?.ref ?? "standalone"}`}>Back to export feasibility</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/services">Ask an expert (preview)</Link>
-              </Button>
-            </div>
-          </section>
+          </details>
+
+          <div className="mt-10 flex flex-wrap items-center gap-3 border-t pt-5">
+            <Button asChild size="lg" className="h-10 px-5">
+              <Link href={kind === "compliance" ? `/schemes${subject ? `?product=${subject.ref}` : ""}` : subject ? `/roadmap?product=${subject.ref}` : "/roadmap"}>{kind === "compliance" ? "Next: CEPA and incentives" : "Next: your roadmap"}</Link>
+            </Button>
+            <Button asChild variant="ghost" className="h-10 px-3">
+              <Link href={subject ? `/workspace/${subject.ref}` : "/workspace"}>Back to my export workspace</Link>
+            </Button>
+          </div>
         </>
       )}
     </>

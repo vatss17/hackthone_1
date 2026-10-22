@@ -63,3 +63,32 @@ export function RegulatoryDimension({ scope, assessmentRef, ids }: { scope: stri
     </DimensionBox>
   );
 }
+
+/**
+ * The four separate assessments on one line each, for the answer-first opportunity list. Still four things,
+ * never one score. The full boxes with their reasons sit one click away on the same card.
+ */
+export function AssessmentStrip({ scope, assessmentRef, ids, fit, evidence }: { scope: string; assessmentRef: string; ids: string[]; fit: string; evidence: string }) {
+  const { assessment, saved, hydrated } = useAssessment({ scope, assessmentRef, defaults: sampleInputs() });
+  const valid = Object.keys(validateInputs(assessment.inputs).errors).length === 0;
+  const sample = assessment.edited.length === 0;
+  const commercial = !hydrated || !saved || !valid ? "Not assessed" : sample ? "Sample inputs only" : `Margin ${formatPct(calculate(assessment.inputs).grossMarginPct)} at your assumptions`;
+  const done = hydrated ? ids.filter((i) => assessment.checks[i]).length : 0;
+  const regulatory = ids.length ? `${done} of ${ids.length} questions answered` : "Not assessed";
+  const cells: [string, string][] = [
+    ["Manufacturing fit", fit],
+    ["Market evidence", evidence],
+    ["Commercial feasibility", commercial],
+    ["Regulatory readiness", regulatory],
+  ];
+  return (
+    <dl className="mt-4 grid gap-x-6 gap-y-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
+      {cells.map(([k, v]) => (
+        <div key={k}>
+          <dt className="text-xs text-muted-foreground">{k}</dt>
+          <dd className="mt-0.5 text-sm font-medium leading-snug">{v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}

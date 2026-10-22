@@ -31,17 +31,27 @@ export function ProductExplanationPanel({ scope, facts, defaults, entry, match, 
   const resolved = facts.questions.all.filter((id) => a.checks[id]).length;
   const e = explainProduct({ entry, match, commercial, screening: { total: facts.questions.all.length, resolved }, evidence });
   const next = w.roadmap.next;
-  const hrefFor = { fit: `/opportunities/${facts.ref}#match`, evidence: `/opportunities/${facts.ref}#uae`, commercial: facts.standalone ? "/viability" : `/viability?product=${facts.ref}`, regulatory: facts.standalone ? "/compliance" : `/compliance?product=${facts.ref}` };
+  const hrefFor = { fit: `/opportunities/${facts.ref}#match`, evidence: `/opportunities/${facts.ref}?stage=4`, commercial: facts.standalone ? "/viability" : `/viability?product=${facts.ref}`, regulatory: facts.standalone ? "/compliance" : `/compliance?product=${facts.ref}` };
   const cta = { fit: "See the match and score breakdown", evidence: "See the evidence and its limits", commercial: "Open the calculator", regulatory: "Open the screening" };
 
   return (
     <section className="space-y-5" aria-labelledby="why-h">
       <div>
-        <h2 id="why-h" className="text-lg font-semibold tracking-tight">
-          Why the platform is showing you this
+        <h2 id="why-h" className="text-lg font-medium tracking-tight">
+          Why this opportunity?
         </h2>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Four separate assessments. They are deliberately not combined into one score: a good manufacturing fit says nothing about demand, margin or regulation.</p>
+        <div className="mt-3 rounded-xl border bg-card p-5">
+          <p className="text-[15px] leading-relaxed">{e.why[0] ?? e.dimensions[0].lines[0]}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Main thing to check: </span>
+            {e.dimensions[0].lines.find((l) => l.startsWith("Needs ")) ?? e.dimensions[0].lines.find((l) => l.startsWith("Tooling to confirm")) ?? e.uncertain[0]}
+          </p>
+        </div>
       </div>
+      <details className="rounded-xl border bg-card/60 px-4 py-3 sm:px-5">
+        <summary className="cursor-pointer text-sm font-medium text-primary">See detailed reasoning</summary>
+        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">Four separate assessments. They are deliberately not combined into one score: a good manufacturing fit says nothing about demand, margin or regulation.</p>
+        <div className="mt-4 space-y-5">
       <div className="grid gap-3 md:grid-cols-2">
         {e.dimensions.map((d) => (
           <DimensionBox key={d.key} title={d.title} status={d.status} badge={BADGE[d.provenance]} href={hrefFor[d.key]} cta={cta[d.key]}>
@@ -84,6 +94,9 @@ export function ProductExplanationPanel({ scope, facts, defaults, entry, match, 
           </ul>
         </div>
       </div>
+
+        </div>
+      </details>
 
       {next && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-primary/40 bg-(--status-verified-bg) p-4">

@@ -35,7 +35,7 @@ const rowId = (fd: FormData, key = "id") => {
 };
 
 function go(back: string, anchor: string, kind: "notice" | "error", code: string): never {
-  redirect(`${back}?${kind}=${code}#${anchor}`);
+  redirect(`${back}${back.includes("?") ? "&" : "?"}${kind}=${code}#${anchor}`);
 }
 
 async function owner(back: string, anchor: string) {
@@ -49,6 +49,9 @@ const bad = (back: string, anchor: string): never => go(back, anchor, "error", "
 function factoryBack(fd: FormData): string {
   const id = rowId(fd, "factoryId");
   if (!id) redirect("/factories");
+  // The guided setup sends the step it came from, so the person stays in the flow. Only 1 to 5 is accepted.
+  const step = clean(fd.get("returnStep"));
+  if (/^[1-5]$/.test(step)) return `/factories/${id}/setup?step=${step}`;
   return `/factories/${id}`;
 }
 
@@ -323,7 +326,32 @@ export async function createProduct(fd: FormData): Promise<void> {
   go(`/products/${id}`, "details", "notice", "product_added");
 }
 
+/**
+ * Saves only the manufacturer's own claimed HS/HSN code, from the classification step of Explore. Same owner check and
+ * company scope as every product edit. The code is stored exactly as claimed (4 to 10 digits) and is never verified here.
+ */
+async function saveHsClaim(fd: FormData): Promise<void> {
+  const id = rowId(fd, "productId");
+  if (!id) redirect("/products");
+  const back = `/opportunities/${id}?stage=3`;
+  const anchor = "hs";
+  const org = await owner(back, anchor);
+  const raw = clean(fd.get("hsCode")).replace(/\s+/g, "");
+  if (raw !== "" && !/^\d{4}([.]?\d{2}){0,3}$/.test(raw)) return bad(back, anchor);
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("products")
+    .update({ hs_code_claimed: raw === "" ? null : raw })
+    .eq("id", id)
+    .eq("organization_id", org.id)
+    .is("archived_at", null)
+    .select("id");
+  if (!error && (!data || data.length === 0)) redirect("/products");
+  finish(error, back, anchor, raw === "" ? "hs_cleared" : "hs_saved");
+}
+
 export async function updateProduct(fd: FormData): Promise<void> {
+  if (clean(fd.get("only")) === "hs") return saveHsClaim(fd);
   const back = productBack(fd);
   const anchor = "details";
   const org = await owner(back, anchor);
@@ -386,7 +414,7 @@ export async function removeSpecification(fd: FormData): Promise<void> {
 }
 
 export async function linkFactory(fd: FormData): Promise<void> {
-  const back = productBack(fd);
+  const back = clean(fd.get("returnStep")) ? factoryBack(fd) : productBack(fd);
   const anchor = "factories";
   const org = await owner(back, anchor);
   const factoryId = rowId(fd, "factoryId");

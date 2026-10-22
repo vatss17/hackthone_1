@@ -103,7 +103,7 @@ export function missingInformation(args: { assessment: Assessment | null; hsClai
   items.push({ id: "hs", label: hsClaimed ? "Confirmation of your claimed HS code" : "An HS code, then its confirmation", why: "Duty, rules of origin and some requirements all depend on classification.", href: `/compliance?product=${ref}#hs`, kind: "unknown" });
   items.push({ id: "uae-reqs", label: "UAE import requirements for this product", why: "No requirement has been verified against official sources.", href: `/compliance?product=${ref}`, kind: "unknown" });
   items.push({ id: "cepa", label: "Whether CEPA preferential duty could apply", why: "Eligibility depends on rules of origin and classification. It has not been checked.", href: `/schemes?product=${ref}`, kind: "unknown" });
-  items.push({ id: "demand", label: "Verified UAE demand and price levels", why: "No market data is connected, so your selling price is untested against the market.", href: `/opportunities/${ref}#uae`, kind: "missing" });
+  items.push({ id: "demand", label: "Verified UAE demand and price levels", why: "No market data is connected, so your selling price is untested against the market.", href: `/opportunities/${ref}?stage=4`, kind: "missing" });
   if (capabilityGaps > 0) items.push({ id: "gaps", label: `${capabilityGaps} gap${capabilityGaps === 1 ? "" : "s"} in your factory profile for this product`, why: "Closing them makes the manufacturing assessment firmer.", href: "/factories", kind: "missing" });
   if (i && (i.cartonGrossWeightKg === null || i.cartonLengthMm === null)) items.push({ id: "carton", label: "Carton weight and dimensions", why: "Needed to cost freight by weight or volume.", href: `${calc}#inputs`, kind: "missing" });
   return items;

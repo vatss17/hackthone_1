@@ -15,7 +15,7 @@ export function JourneyBar({ current, reference }: { current: JourneyStep; refer
     { id: "profile", label: "Catalogue", href: "/products" },
     { id: "opportunities", label: "Opportunities", href: "/opportunities" },
     { id: "explore", label: "Explore", href: q ? `/opportunities/${q}` : "/opportunities" },
-    { id: "evidence", label: "UAE evidence", href: q ? `/opportunities/${q}#uae` : "/evidence" },
+    { id: "evidence", label: "UAE evidence", href: q ? `/opportunities/${q}?stage=4` : "/evidence" },
     { id: "cost", label: "Landed cost", href: q ? `/viability?product=${q}#inputs` : "/viability#inputs" },
     { id: "scenarios", label: "Scenarios", href: q ? `/viability?product=${q}#scenarios` : "/viability#scenarios" },
     { id: "feasibility", label: "Feasibility", href: `/feasibility/${q ?? "standalone"}` },

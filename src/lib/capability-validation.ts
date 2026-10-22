@@ -115,6 +115,8 @@ export const NOTICE_MESSAGES: Record<string, string> = {
   material_removed: "Material removed.",
   product_added: "Product added.",
   product_updated: "Product details saved.",
+  hs_saved: "Your product code was saved exactly as you entered it. It is unverified.",
+  hs_cleared: "Your product code was removed.",
   product_archived: "Product archived. It is no longer in your active list.",
   spec_added: "Specification added.",
   spec_removed: "Specification removed.",

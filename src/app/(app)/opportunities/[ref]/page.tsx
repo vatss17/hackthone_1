@@ -3,19 +3,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { JourneyBar } from "@/components/journey-bar";
 import { TradeEvidencePanel } from "@/components/evidence/trade-panel";
 import { ProductExplanationPanel } from "@/components/explain/product-explanation";
 import { evidenceForEntry } from "@/lib/trade/evidence";
 import { aiStatus } from "@/lib/ai/provider";
 import { loadWorkspaceFacts } from "@/lib/workspace-facts";
 import { StatusBadge } from "@/components/status-badge";
+import { Flash } from "@/components/profile/form-bits";
+import { HsHelper } from "@/components/classification/hs-helper";
+import { CommercialDimension } from "@/components/opportunities/dimensions";
 import { Chip, FitMeter, LabelledList, ScoreBreakdown } from "@/components/opportunities/parts";
 import { requireOrganization } from "@/lib/organization";
 import { getProductDetail, loadEngineInput, type ProductDetail } from "@/lib/capabilities";
 import { isUuid } from "@/lib/factory-validation";
 import { CATALOGUE_BY_ID, COMMON_CONSIDERATIONS } from "@/lib/opportunities/catalogue";
-import { FIT_LABEL, MATERIAL_NAMES, PROCESS_NAMES, matchEntry, recognise } from "@/lib/opportunities/engine";
+import { FIT_LABEL, MATERIAL_NAMES, matchEntry, recognise } from "@/lib/opportunities/engine";
 import type { CatalogueEntry, MatchResult } from "@/lib/opportunities/types";
 
 export const metadata: Metadata = { title: "Explore export potential · Export Enablement Platform" };
@@ -23,19 +25,26 @@ export const instant = false;
 
 const EFFORT_LABEL = { lighter: "lighter", moderate: "moderate", heavier: "heavier" } as const;
 
-function Panel({ id, title, badges, children }: { id: string; title: string; badges?: React.ReactNode; children: React.ReactNode }) {
+function Block({ id, title, badges, children }: { id?: string; title: string; badges?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section aria-labelledby={id} className="mt-8 rounded-md border bg-card">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 sm:px-5">
-        <h2 id={id} className="text-base font-semibold tracking-tight">
-          {title}
-        </h2>
+    <section id={id} aria-label={title} className="scroll-mt-20 space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-medium tracking-tight">{title}</h2>
         <div className="flex flex-wrap gap-1.5">{badges}</div>
       </div>
-      <div className="p-4 sm:p-5">{children}</div>
+      {children}
     </section>
   );
 }
+
+const STAGES = [
+  { n: 1, short: "Product", title: "Your starting point", lead: "What the product is, why it suits your factory, and what is still uncertain." },
+  { n: 2, short: "Details", title: "Confirm the product and its specifications", lead: "The better these are, the better the guidance. Anything missing is listed, and you can add it later." },
+  { n: 3, short: "Classification", title: "Find the right product code", lead: "The HS/HSN code decides duty, rules of origin and which requirements apply." },
+  { n: 4, short: "Market evidence", title: "What the evidence says about the UAE", lead: "Five plain questions, answered with what is actually available, and honest about what is not." },
+  { n: 5, short: "Economics", title: "Would it pay?", lead: "Landed cost, price and margin, with every assumption yours to change." },
+  { n: 6, short: "Next steps", title: "What is still unknown, and what to do next", lead: "The few things to settle first, what you can do now and what needs an expert." },
+] as const;
 
 function verdict(match: MatchResult | null): { headline: string; text: string } {
   if (!match) return { headline: "Not enough information to judge", text: "There is no rules profile for this product type yet. Use the steps below to investigate it." };
@@ -44,9 +53,9 @@ function verdict(match: MatchResult | null): { headline: string; text: string } 
   return { headline: "Worth investigating", text: "Your declared capabilities line up well. That is the only thing assessed so far." };
 }
 
-export default async function ExplorePage({ params }: PageProps<"/opportunities/[ref]">) {
+export default async function ExplorePage({ params, searchParams }: PageProps<"/opportunities/[ref]">) {
   const { organization } = await requireOrganization();
-  const { ref } = await params;
+  const [{ ref }, sp] = await Promise.all([params, searchParams]);
 
   let entry: CatalogueEntry | null = null;
   let product: ProductDetail | null = null;
@@ -65,13 +74,42 @@ export default async function ExplorePage({ params }: PageProps<"/opportunities/
   const match = entry ? matchEntry(entry, input) : null;
   const v = verdict(match);
   const title = product?.name ?? entry!.name;
+  const ev = evidenceForEntry(entry?.id);
+  const stage = typeof sp.stage === "string" && /^[1-6]$/.test(sp.stage) ? Number(sp.stage) : 1;
+  const meta = STAGES[stage - 1];
+  const here = `/opportunities/${ref}`;
+  const regTopics = [...(entry?.regulatoryFocus.map((t) => ({ topic: t, note: "Applicability to this product has not been assessed." })) ?? []), ...COMMON_CONSIDERATIONS];
+  const uaeHeadings = ev.headings;
+
+  const questions: { q: string; a: string; note?: string }[] = [
+    {
+      q: "Is there evidence of UAE imports of this product category?",
+      a: ev.hasData ? `Yes, for the broad heading${uaeHeadings.length > 1 ? "s" : ""} ${uaeHeadings.map((h) => h.heading).join(", ")}. See the figures below. A heading covers many products, so this shows that trade exists, not that your product sells.` : ev.loaded ? "Nothing reported for this product type in the loaded data." : "Not available here. Reported import figures are not loaded in this deployment, and none are estimated.",
+    },
+    {
+      q: "What historical India-to-UAE exports are reported?",
+      a: ev.hasData && uaeHeadings.some((h) => h.latestIndia) ? "India reports exports to the UAE under the same headings (see the figures). It is India's own record, valued differently from the UAE's, so the two are shown side by side and never subtracted." : "Not available here. India-reported figures are not loaded in this deployment.",
+    },
+    {
+      q: "Is a comparable approximate unit value supported by valid data?",
+      a: "No unit value is shown. The data gives total value and weight for a whole heading, and dividing them gives an average across everything in it, which says little about the price of your product. A real price needs quotes or buyer enquiries.",
+    },
+    {
+      q: "What does this tell you, and what does it not?",
+      a: "It can show that a category is traded and roughly how large and steady the trade is. It cannot show demand for your product, who would buy it, at what price, after what duty, or whether it meets UAE requirements.",
+    },
+    {
+      q: "What next step would improve confidence?",
+      a: ev.hasData ? "Confirm your product code in the previous step so the figures narrow from a broad heading to your tariff line, then test price with two or three UAE importers or distributors." : "Obtain licensed trade data for your heading, or ask an expert or trade body for it, and in parallel speak to two or three UAE importers or distributors in the industries below. Both are things you can start now.",
+    },
+  ];
 
   return (
     <>
       <PageHeader
-        eyebrow="Product exploration"
+        eyebrow="Explore export potential"
         title={title}
-        description={product ? "One of your products. This page shows what is known, what is inferred and what is still missing about taking it to the UAE." : "A product your factory could plausibly make. This page shows what is inferred and what is still missing about taking it to the UAE."}
+        description={product ? "One of your products." : "A product your factory could plausibly make."}
         action={
           <Button asChild variant="outline">
             <Link href="/opportunities">All opportunities</Link>
@@ -79,218 +117,325 @@ export default async function ExplorePage({ params }: PageProps<"/opportunities/
         }
       />
 
-      <JourneyBar current="explore" reference={ref} />
+      <nav aria-label="Where you are" className="mt-3 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+        <Link href={`/workspace/${ref}`} className="underline-offset-4 hover:text-foreground hover:underline">
+          My export workspace
+        </Link>
+        <span aria-hidden>›</span>
+        <Link href="/opportunities" className="underline-offset-4 hover:text-foreground hover:underline">
+          Export opportunities
+        </Link>
+        <span aria-hidden>›</span>
+        <span className="text-foreground">{title}</span>
+      </nav>
 
-      <div className="mt-6 rounded-md border border-primary/30 bg-(--status-verified-bg) p-4 sm:p-5">
-        <p className="text-xs font-medium uppercase tracking-wide text-primary">Export feasibility status</p>
-        <p className="mt-1 text-lg font-semibold tracking-tight">{v.headline}</p>
-        <p className="mt-1 max-w-2xl text-sm">
-          {v.text} <span className="font-medium">Overall: not yet validated.</span> Demand, cost, compliance and incentives have not been assessed.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <StatusBadge kind={product ? "user" : "inferred"} />
-          <span className="text-xs text-muted-foreground">{product ? "Your own product." : "Suggested from your capabilities."}</span>
+      <nav aria-label="Exploration steps" className="mt-6">
+        <ol className="flex flex-wrap gap-x-1 gap-y-1 text-sm">
+          {STAGES.map((s) => (
+            <li key={s.n}>
+              <Link
+                href={`${here}?stage=${s.n}`}
+                aria-current={s.n === stage ? "step" : undefined}
+                className={s.n === stage ? "inline-flex h-8 items-center rounded-md bg-mint px-3 font-medium" : "inline-flex h-8 items-center rounded-md px-3 text-muted-foreground hover:bg-muted hover:text-foreground"}
+              >
+                <span className="mr-1.5 font-mono text-xs text-primary">{s.n}</span>
+                {s.short}
+              </Link>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={1} aria-valuemax={6} aria-valuenow={stage} aria-label={`Step ${stage} of 6`}>
+          <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${(stage / 6) * 100}%` }} />
         </div>
-      </div>
+      </nav>
 
       <div className="mt-8">
-        <ProductExplanationPanel scope={organization.id} facts={wf.facts} defaults={wf.defaults} entry={wf.entry} match={wf.match} ai={aiStatus(process.env)} evidence={evidenceForEntry(wf.entry?.id)} />
+        <h2 className="text-2xl font-medium tracking-tight">{meta.title}</h2>
+        <p className="mt-1 max-w-2xl text-muted-foreground">{meta.lead}</p>
       </div>
 
-      {/* ---------------- overview ---------------- */}
-      <Panel id="overview" title="Product overview" badges={<StatusBadge kind={product ? "user" : "inferred"} />}>
-        {product ? (
-          <div className="space-y-3 text-sm">
-            <p className="whitespace-pre-line">{product.description ?? "No description provided."}</p>
-            <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
-              <div>
-                <dt className="inline text-muted-foreground">Category: </dt>
-                <dd className="inline">{product.category ?? "Not set"}</dd>
+      <div className="mt-8 space-y-10">
+        {/* ------------------------------------------------ 1 product and why */}
+        {stage === 1 && (
+          <>
+            <div className="rounded-xl bg-mint p-5 sm:p-6">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-primary">Where it stands</p>
+              <p className="mt-1 text-xl font-medium tracking-tight">{v.headline}</p>
+              <p className="mt-1 max-w-2xl text-sm">
+                {v.text} <span className="font-medium">Not yet validated:</span> demand, cost, compliance and incentives have not been assessed.
+              </p>
+              {!product && (
+                <p className="mt-3 text-sm">
+                  Suggested from your capabilities.{" "}
+                  <Link href="/products/new" className="font-medium text-primary underline underline-offset-4">
+                    Add it to your catalogue
+                  </Link>{" "}
+                  to keep your own details.
+                </p>
+              )}
+            </div>
+            <ProductExplanationPanel scope={organization.id} facts={wf.facts} defaults={wf.defaults} entry={wf.entry} match={wf.match} ai={aiStatus(process.env)} evidence={evidenceForEntry(wf.entry?.id)} />
+            <details id="match" className="rounded-lg border bg-card px-4 py-3 text-sm sm:px-5">
+              <summary className="cursor-pointer font-medium">Capability match in detail</summary>
+              {match ? (
+                <div className="mt-4 space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <FitMeter score={match.score} level={match.level} />
+                    <span className="font-medium">{FIT_LABEL[match.level]}</span>
+                  </div>
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <LabelledList title="Why it matches your factory" items={match.reasons.length ? match.reasons : ["No declared capability lines up with this product yet."]} />
+                    <LabelledList title="Gaps in your profile for this product" items={match.gaps} />
+                  </div>
+                  <div className="overflow-x-auto">
+                    <ScoreBreakdown parts={match.parts} />
+                  </div>
+                  <p className="text-muted-foreground">
+                    <span className="font-medium text-foreground">Confidence: {match.confidence.level}.</span> {match.confidence.why}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 text-muted-foreground">There is no rules profile for this product type yet, so no capability score is shown. Nothing here implies the product cannot be made or exported.</p>
+              )}
+            </details>
+            <p className="text-sm text-muted-foreground">
+              Want to look at another product?{" "}
+              <Link href="/opportunities" className="font-medium text-primary underline-offset-4 hover:underline">
+                Choose one
+              </Link>{" "}
+              or{" "}
+              <Link href="/products/import" className="font-medium text-primary underline-offset-4 hover:underline">
+                import a catalogue
+              </Link>
+              .
+            </p>
+          </>
+        )}
+
+        {/* ------------------------------------------------ 2 identity */}
+        {stage === 2 && (
+          <>
+            {product ? (
+              <div className="space-y-4 text-sm">
+                <p className="whitespace-pre-line text-[15px]">{product.description ?? "No description provided."}</p>
+                <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+                  {(
+                    [
+                      ["Category", product.category ?? "Not set"],
+                      ["Intended use", product.intendedUse ?? "Not provided"],
+                      ["Made at", product.factories.map((f) => f.name).join(", ") || "Not linked to a factory"],
+                      ["HS code you entered", product.hsCodeClaimed ? `${product.hsCodeClaimed}, unverified` : "Not provided"],
+                    ] as [string, string][]
+                  ).map(([k, val]) => (
+                    <div key={k}>
+                      <dt className="text-muted-foreground">{k}</dt>
+                      <dd className="font-medium">{val}</dd>
+                    </div>
+                  ))}
+                </dl>
+                {product.specs.length > 0 ? (
+                  <ul className="flex flex-wrap gap-1.5">
+                    {product.specs.map((sp2) => (
+                      <Chip key={sp2.id}>
+                        {sp2.name}: {sp2.value}
+                        {sp2.unit ? ` ${sp2.unit}` : ""}
+                      </Chip>
+                    ))}
+                  </ul>
+                ) : null}
+                {(() => {
+                  const missing = [!product.description && "a description", !product.intendedUse && "the intended use", product.specs.length === 0 && "at least one specification", !product.factories.length && "the factory that makes it"].filter(Boolean) as string[];
+                  return missing.length ? (
+                    <p className="rounded-lg bg-muted px-4 py-3">
+                      To sharpen the guidance, add {missing.join(", ")}.
+                    </p>
+                  ) : (
+                    <p className="rounded-lg bg-mint px-4 py-3">The product record is complete enough for a first assessment.</p>
+                  );
+                })()}
+                {entry && (
+                  <p className="text-muted-foreground">
+                    Recognised as <span className="font-medium text-foreground">{entry.name.toLowerCase()}</span>, so the guidance uses that product type. If that is wrong, treat the type-specific parts with caution.
+                  </p>
+                )}
+                <Button asChild variant="outline">
+                  <Link href={`/products/${product.id}`}>Edit product details</Link>
+                </Button>
               </div>
-              <div>
-                <dt className="inline text-muted-foreground">Intended use: </dt>
-                <dd className="inline">{product.intendedUse ?? "Not provided"}</dd>
+            ) : (
+              <div className="space-y-2 text-sm">
+                <p className="text-[15px]">{entry!.summary}</p>
+                <p className="text-muted-foreground">
+                  Product family: {entry!.group}. Typical size: {entry!.sizeClass}. Usual materials: {entry!.materials.preferred.map((m) => MATERIAL_NAMES[m]).join(", ")}.
+                </p>
+                <Button asChild variant="outline">
+                  <Link href="/products/new">Add it as one of your products</Link>
+                </Button>
               </div>
-              <div>
-                <dt className="inline text-muted-foreground">Made at: </dt>
-                <dd className="inline">{product.factories.map((f) => f.name).join(", ") || "Not linked to a factory"}</dd>
-              </div>
-              <div>
-                <dt className="inline text-muted-foreground">HS code (claimed): </dt>
-                <dd className="inline">{product.hsCodeClaimed ? `${product.hsCodeClaimed}, unverified` : "Not provided"}</dd>
-              </div>
-            </dl>
-            {product.specs.length > 0 && (
-              <ul className="flex flex-wrap gap-1.5">
-                {product.specs.map((s) => (
-                  <Chip key={s.id}>
-                    {s.name}: {s.value}
-                    {s.unit ? ` ${s.unit}` : ""}
-                  </Chip>
+            )}
+          </>
+        )}
+
+        {/* ------------------------------------------------ 3 classification */}
+        {stage === 3 && (
+          <>
+          <Flash params={sp} />
+          <HsHelper
+            defaults={{ name: title, category: product?.category ?? entry?.group ?? "", description: product?.description ?? entry?.summary ?? "", use: product?.intendedUse ?? "", specs: product?.specs.map((x) => `${x.name} ${x.value}${x.unit ? ` ${x.unit}` : ""}`).join(", ") ?? "" }}
+            catalogueId={entry?.id ?? null}
+            claimedCode={product?.hsCodeClaimed ?? null}
+            productId={product?.id ?? null}
+          />
+          </>
+        )}
+
+        {/* ------------------------------------------------ 4 evidence */}
+        {stage === 4 && (
+          <>
+            <ol className="divide-y rounded-xl border bg-card">
+              {questions.map((x, i) => (
+                <li key={x.q} className="grid gap-1 px-5 py-4 sm:grid-cols-[2rem_1fr] sm:px-6">
+                  <span className="font-mono text-sm text-primary">{i + 1}</span>
+                  <div>
+                    <h3 className="font-medium">{x.q}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{x.a}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <Block id="uae" title="The figures" badges={<StatusBadge kind={ev.hasData ? "reported" : "missing"} />}>
+              <p className="text-sm text-muted-foreground">Figures are data with a source and a date. Any AI commentary is separate and is labelled as such.</p>
+              <TradeEvidencePanel evidence={ev} />
+            </Block>
+            {entry && (
+              <Block title="Who might buy it (hypotheses to test)" badges={<StatusBadge kind="inferred" />}>
+                <ul className="grid gap-3 sm:grid-cols-3">
+                  {entry.industries.map((i) => (
+                    <li key={i.name} className="rounded-lg border bg-card p-4">
+                      <h3 className="text-sm font-medium">{i.name}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">{i.applications}</p>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-muted-foreground">Categories of buyer, not named companies and not confirmed demand.</p>
+              </Block>
+            )}
+          </>
+        )}
+
+        {/* ------------------------------------------------ 5 economics */}
+        {stage === 5 && (
+          <>
+            <div className="max-w-xl">
+              <CommercialDimension scope={organization.id} assessmentRef={ref} />
+            </div>
+            <p className="max-w-2xl text-sm text-muted-foreground">The calculator starts from sample values and says so until you replace them with your own costs and quotes. The duty rate is an unverified assumption and no live exchange rate is connected.</p>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild size="lg" className="h-10 px-5">
+                <Link href={`/viability?product=${ref}`}>Open the landed-cost calculator</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="h-10 px-4">
+                <Link href={`/viability?product=${ref}#scenarios`}>Compare scenarios</Link>
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* ------------------------------------------------ 6 unknowns and next */}
+        {stage === 6 && (
+          <>
+            <div className="grid gap-4 md:grid-cols-2">
+              <section className="rounded-xl border bg-card p-5" aria-label="What we know">
+                <h3 className="text-sm font-medium uppercase tracking-[0.1em] text-muted-foreground">What we know</h3>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm">
+                  <li>{match ? `Manufacturing fit: ${FIT_LABEL[match.level].toLowerCase()}, from your declared factory data.` : "No rules profile for this product type."}</li>
+                  <li>{product ? "You made this product record yourself." : "This is a suggestion, not one of your products yet."}</li>
+                </ul>
+              </section>
+              <section className="rounded-xl border bg-card p-5" aria-label="What needs checking">
+                <h3 className="text-sm font-medium uppercase tracking-[0.1em] text-muted-foreground">What needs checking first</h3>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm">
+                  {regTopics.slice(0, 3).map((c) => (
+                    <li key={c.topic}>{c.topic}</li>
+                  ))}
+                </ul>
+              </section>
+              <section className="rounded-xl border bg-card p-5" aria-label="What you can do now">
+                <h3 className="text-sm font-medium uppercase tracking-[0.1em] text-muted-foreground">What you can do now</h3>
+                <ul className="mt-2 space-y-1 text-sm">
+                  <li>
+                    <Link href={`${here}?stage=3`} className="text-primary underline-offset-4 hover:underline">Narrow down the product code</Link>
+                  </li>
+                  <li>
+                    <Link href={`/viability?product=${ref}`} className="text-primary underline-offset-4 hover:underline">Replace the sample costs with your own</Link>
+                  </li>
+                  <li>
+                    <Link href={`/compliance?product=${ref}`} className="text-primary underline-offset-4 hover:underline">Work through the first screening questions</Link>
+                  </li>
+                </ul>
+              </section>
+              <section className="rounded-xl border bg-card p-5" aria-label="What needs an expert">
+                <h3 className="text-sm font-medium uppercase tracking-[0.1em] text-muted-foreground">What needs an expert</h3>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm">
+                  <li>Confirming the product code (HS classification)</li>
+                  <li>UAE requirements, testing and approvals</li>
+                  <li>CEPA origin rules and incentive eligibility</li>
+                </ul>
+                <p className="mt-3 text-sm">
+                  <Link href={`/services?product=${ref}`} className="font-medium text-primary underline-offset-4 hover:underline">Prepare an expert brief</Link>
+                </p>
+              </section>
+            </div>
+            <p className="max-w-2xl text-sm text-muted-foreground">None of this has been checked against official UAE or GCC sources, and no requirement is confirmed. These are topics to check, not findings.</p>
+            <details className="rounded-lg border bg-card px-4 py-3 text-sm sm:px-5">
+              <summary className="cursor-pointer font-medium">View all regulatory considerations and production gaps</summary>
+              <ul className="mt-3 divide-y rounded-md border">
+                {regTopics.map((c) => (
+                  <li key={c.topic} className="grid gap-1 px-3 py-2.5 sm:grid-cols-[14rem_1fr] sm:gap-4">
+                    <p className="font-medium">{c.topic}</p>
+                    <p className="text-muted-foreground">{c.note}</p>
+                  </li>
                 ))}
               </ul>
-            )}
-            {entry && (
-              <p className="text-muted-foreground">
-                Recognised as <span className="font-medium text-foreground">{entry.name.toLowerCase()}</span>, so the guidance below uses that product type. If that is wrong, treat the type-specific sections with caution.
-              </p>
-            )}
-            <Link href={`/products/${product.id}`} className="inline-block font-medium text-primary underline-offset-4 hover:underline">
-              Edit product details
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-2 text-sm">
-            <p>{entry!.summary}</p>
-            <p className="text-muted-foreground">
-              Product family: {entry!.group}. Typical size: {entry!.sizeClass}. Usual materials: {entry!.materials.preferred.map((m) => MATERIAL_NAMES[m]).join(", ")}.
-            </p>
-          </div>
-        )}
-      </Panel>
-
-      {/* ---------------- capability match ---------------- */}
-      <Panel id="match" title="Capability match" badges={<StatusBadge kind="inferred" />}>
-        {match ? (
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <FitMeter score={match.score} level={match.level} />
-              <span className="text-sm font-medium">{FIT_LABEL[match.level]}</span>
+              {entry && (
+                <div className="mt-4 grid gap-5 md:grid-cols-3">
+                  <LabelledList title="From your profile" items={match?.gaps.length ? match.gaps : ["No gaps found in the declared profile."]} />
+                  <LabelledList title="Tooling this product may need" items={entry.tooling} />
+                  <LabelledList title="Validations to plan for" items={entry.validations} />
+                </div>
+              )}
+              {entry && (
+                <p className="mt-3 text-muted-foreground">
+                  Rule-of-thumb qualification effort: <span className="font-medium text-foreground">{EFFORT_LABEL[entry.qualificationEffort]}</span>. A planning guess, not a regulatory finding.
+                </p>
+              )}
+            </details>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button asChild size="lg" className="h-10 px-5">
+                <Link href={`/workspace/${ref}`}>Go to my export workspace</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="h-10 px-4">
+                <Link href={`/feasibility/${ref}`}>Open the feasibility summary</Link>
+              </Button>
             </div>
-            <div className="grid gap-5 md:grid-cols-2">
-              <LabelledList title="Why it matches your factory" items={match.reasons.length ? match.reasons : ["No declared capability lines up with this product yet."]} />
-              <LabelledList title="Gaps in your profile for this product" items={match.gaps} />
-            </div>
-            <div className="overflow-x-auto">
-              <ScoreBreakdown parts={match.parts} />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Confidence: {match.confidence.level}.</span> {match.confidence.why}
-            </p>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            There is no rules profile for this product type yet, so no capability score is shown. Nothing here implies the product cannot be made or exported.
-          </p>
-        )}
-      </Panel>
-
-      {/* ---------------- UAE summary ---------------- */}
-      <Panel id="uae" title="UAE market evidence" badges={<><StatusBadge kind="reported" /><StatusBadge kind="inferred" /></>}>
-        <div className="space-y-5">
-          {entry && <LabelledList title="Why it may be worth investigating (hypotheses to test)" items={entry.whyUae} />}
-          <TradeEvidencePanel evidence={evidenceForEntry(entry?.id)} />
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">What this evidence cannot tell you</h4>
-            <ul className="mt-2 divide-y rounded-md border">
-              {[
-                "Whether buyers would pay your price after freight and duty",
-                "Which countries compete in your exact product, and at what unit prices",
-                "The duty and tax treatment for your tariff line",
-                "Whether your product would meet UAE technical requirements",
-              ].map((t) => (
-                <li key={t} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
-                  <span>{t}</span>
-                  <StatusBadge kind="missing" />
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </Panel>
-
-      {/* ---------------- buyers ---------------- */}
-      <Panel id="buyers" title="Potential buyers and applications by industry" badges={<StatusBadge kind="inferred" />}>
-        {entry ? (
-          <>
-            <ul className="grid gap-3 sm:grid-cols-3">
-              {entry.industries.map((i) => (
-                <li key={i.name} className="rounded-md border p-3">
-                  <h3 className="text-sm font-semibold">{i.name}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{i.applications}</p>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-xs text-muted-foreground">These are categories of buyer, not named companies. Finding actual buyers is outside this platform.</p>
           </>
-        ) : (
-          <p className="text-sm text-muted-foreground">Industries and applications have not been worked out for this product type yet.</p>
         )}
-      </Panel>
+      </div>
 
-      {/* ---------------- production gaps ---------------- */}
-      <Panel id="gaps" title="Potential production gaps" badges={<StatusBadge kind="inferred" />}>
-        {entry ? (
-          <div className="grid gap-5 md:grid-cols-3">
-            <LabelledList title="From your profile" items={match?.gaps.length ? match.gaps : ["No gaps found in the declared profile."]} />
-            <LabelledList title="Tooling this product may need" items={entry.tooling} />
-            <LabelledList title="Validations to plan for" items={entry.validations} />
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Typical tooling and validation needs are not available for this product type yet.</p>
-        )}
-      </Panel>
-
-      {/* ---------------- regulatory ---------------- */}
-      <Panel id="regulatory" title="Preliminary regulatory considerations" badges={<StatusBadge kind="missing" />}>
-        <p className="rounded-md bg-muted px-3 py-2 text-sm">
-          These are topics to check, not findings. Nothing has been checked against official UAE or GCC sources, and no requirement is confirmed. A compliance review would settle each one.
-        </p>
-        <ul className="mt-4 divide-y rounded-md border">
-          {[...(entry?.regulatoryFocus.map((t) => ({ topic: t, note: "Applicability to this product has not been assessed." })) ?? []), ...COMMON_CONSIDERATIONS].map((c) => (
-            <li key={c.topic} className="grid gap-1 px-3 py-2.5 sm:grid-cols-[14rem_1fr] sm:gap-4">
-              <p className="text-sm font-medium">{c.topic}</p>
-              <p className="text-sm text-muted-foreground">{c.note}</p>
-            </li>
-          ))}
-        </ul>
-        {entry && (
-          <p className="mt-3 text-sm text-muted-foreground">
-            Rule-of-thumb qualification effort for this kind of product: <span className="font-medium text-foreground">{EFFORT_LABEL[entry.qualificationEffort]}</span> <StatusBadge kind="inferred" />. This is a planning guess, not a regulatory finding.
-          </p>
-        )}
-      </Panel>
-
-      {/* ---------------- status table and next step ---------------- */}
-      <Panel id="status" title="Where this product stands on the export journey">
-        <ul className="divide-y rounded-md border">
-          {[
-            { label: "Capability fit", badge: <StatusBadge kind={match ? "inferred" : "missing"} />, text: match ? FIT_LABEL[match.level] : "Not assessed", href: null as string | null },
-            { label: "UAE demand and competition", badge: <StatusBadge kind="missing" />, text: "Verified trade data not connected", href: null },
-            { label: "Landed cost and margin", badge: <StatusBadge kind="estimate" />, text: "Calculator available", href: `/viability?product=${ref}` },
-            { label: "Compliance and testing", badge: <StatusBadge kind="unknown" />, text: "Screening questions available", href: `/compliance?product=${ref}` },
-            { label: "CEPA and incentives", badge: <StatusBadge kind="unknown" />, text: "Screening questions available", href: `/schemes?product=${ref}` },
-            { label: "Export feasibility", badge: <StatusBadge kind="inferred" />, text: "Combined first assessment", href: `/feasibility/${ref}` },
-            { label: "Export documents", badge: <StatusBadge kind="planned" />, text: "Preview available", href: "/documentation" },
-          ].map((r) => (
-            <li key={r.label} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm">
-              <span className="font-medium">{r.label}</span>
-              <span className="flex flex-wrap items-center gap-2 text-muted-foreground">
-                {r.text}
-                {r.badge}
-                {r.href && (
-                  <Link href={r.href} className="font-medium text-primary underline-offset-4 hover:underline">
-                    Open
-                  </Link>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Button asChild size="lg" className="h-10">
-            <Link href={`/viability?product=${ref}`}>Continue to landed-cost assessment</Link>
+      <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t pt-5">
+        {stage > 1 ? (
+          <Button asChild variant="ghost" className="h-10 px-3">
+            <Link href={`${here}?stage=${stage - 1}`}>← Back</Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="h-10">
-            <Link href={`/feasibility/${ref}`}>Open export feasibility</Link>
-          </Button>
-        </div>
-        {match && match.entry.processes.requiredAll.length > 0 && (
-          <p className="mt-4 text-xs text-muted-foreground">
-            Needs {match.entry.processes.requiredAll.map((p) => PROCESS_NAMES[p].toLowerCase()).join(" and ")}. The calculator starts from sample values you replace with your own.
-          </p>
+        ) : (
+          <span />
         )}
-      </Panel>
+        {stage < 6 && (
+          <Button asChild size="lg" className="h-10 px-5">
+            <Link href={`${here}?stage=${stage + 1}`}>Next: {STAGES[stage].short}</Link>
+          </Button>
+        )}
+      </div>
     </>
   );
 }

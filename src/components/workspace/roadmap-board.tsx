@@ -89,18 +89,13 @@ function TaskCard({ t, onStatus, onNote }: { t: RoadmapTask; onStatus: (id: stri
     <li className="px-4 py-4 sm:px-5" id={`task-${t.id}`}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1">
-          <h4 className="text-[15px] font-semibold leading-snug">{t.title}</h4>
+          <h4 className="text-[15px] font-medium leading-snug">{t.title}</h4>
           <p className="mt-0.5 text-sm text-muted-foreground">{t.why}</p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className={cn("rounded-sm border px-1.5 py-0.5 text-xs", t.priority === "high" ? "border-primary/50 text-primary" : "border-border text-muted-foreground")}>{t.priority} priority</span>
           {t.blocker && <span className="rounded-sm border border-(--status-missing-border) bg-(--status-missing-bg) px-1.5 py-0.5 text-xs text-(--status-missing-fg)">Blocker</span>}
+          <StatusPill status={t.status} />
         </div>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <StatusPill status={t.status} />
-        <SupportBadge support={t.support} />
-        <span className="text-xs text-muted-foreground">{t.statusSource === "you" ? "Set by you" : "From your saved data"}</span>
       </div>
       <p className="mt-1.5 text-sm text-muted-foreground">{t.supportNote}</p>
       {t.disclaimer && <p className="mt-1 text-xs text-(--status-estimate-fg)">{t.disclaimer}</p>}
@@ -108,38 +103,45 @@ function TaskCard({ t, onStatus, onNote }: { t: RoadmapTask; onStatus: (id: stri
         <Button asChild size="sm">
           <Link href={t.next.href}>{t.next.label}</Link>
         </Button>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Status</span>
-          <select
-            aria-label={`Status of ${t.title}`}
-            value={t.status}
-            onChange={(e) => onStatus(t.id, e.target.value as TaskStatus)}
-            className="h-8 rounded-md border border-input bg-card px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
-          >
-            {TASK_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
-        </label>
-        {t.statusSource === "you" && (
-          <Button type="button" variant="ghost" size="sm" onClick={() => onStatus(t.id, null)}>
-            Use the automatic status
-          </Button>
-        )}
+        <details className="group">
+          <summary className="cursor-pointer list-none text-sm text-muted-foreground underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">Update status or add a note</summary>
+          <div className="mt-3 space-y-3 rounded-md border bg-card p-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Status</span>
+                <select
+                  aria-label={`Status of ${t.title}`}
+                  value={t.status}
+                  onChange={(e) => onStatus(t.id, e.target.value as TaskStatus)}
+                  className="h-8 rounded-md border border-input bg-card px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+                >
+                  {TASK_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABEL[s]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <SupportBadge support={t.support} />
+              <span className="text-xs text-muted-foreground">{t.statusSource === "you" ? "Set by you" : "From your saved data"}</span>
+              {t.statusSource === "you" && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => onStatus(t.id, null)}>
+                  Use the automatic status
+                </Button>
+              )}
+            </div>
+            <textarea
+              aria-label={`Note for ${t.title}`}
+              value={note}
+              maxLength={300}
+              placeholder="A note for yourself"
+              onChange={(e) => setNote(e.target.value)}
+              onBlur={() => note !== t.note && onNote(t.id, note)}
+              className="min-h-16 w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+            />
+          </div>
+        </details>
       </div>
-      <details className="mt-2">
-        <summary className="cursor-pointer text-xs text-muted-foreground">{t.note ? "Your note" : "Add a note"}</summary>
-        <textarea
-          aria-label={`Note for ${t.title}`}
-          value={note}
-          maxLength={300}
-          onChange={(e) => setNote(e.target.value)}
-          onBlur={() => note !== t.note && onNote(t.id, note)}
-          className="mt-1 min-h-16 w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
-        />
-      </details>
     </li>
   );
 }
@@ -153,17 +155,26 @@ export function RoadmapBoard({ scope, facts, defaults }: { scope: string; facts:
     w.setTask(id, cur?.statusSource === "you" ? cur.status : (cur?.status ?? "not_started"), note);
   };
   if (!w.hydrated) return <p className="mt-8 text-sm text-muted-foreground">Loading your roadmap…</p>;
+  const c = roadmap.counts;
+  const nextPhase = roadmap.next ? roadmap.phases.find((ph) => ph.tasks.some((t) => t.id === roadmap.next!.task.id)) : undefined;
   return (
     <div className="mt-6 space-y-8">
       <NextBestAction roadmap={roadmap} productName={facts.product?.name ?? null} />
-      <ProgressCounts roadmap={roadmap} />
+      <p className="text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">
+          {c.completed} of {c.total} tasks completed
+        </span>
+        {c.inProgress ? ` · ${c.inProgress} in progress` : ""}
+        {c.needsReview ? ` · ${c.needsReview} need review` : ""}. Counted in tasks, not scored.{" "}
+        {c.resting > 0 ? `${c.resting} completed rest${c.resting === 1 ? "s" : ""} on your word or on assumptions.` : "Completed tasks here are backed by your saved data."}
+      </p>
 
       {roadmap.blockers.length > 0 && (
         <section aria-labelledby="blk-h">
-          <h2 id="blk-h" className="text-lg font-semibold tracking-tight">
-            Outstanding blockers
+          <h2 id="blk-h" className="text-lg font-medium tracking-tight">
+            What is holding you back
           </h2>
-          <ul className="mt-3 divide-y rounded-md border bg-card">
+          <ul className="mt-3 divide-y rounded-xl border bg-card">
             {roadmap.blockers.map((t) => (
               <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm sm:px-5">
                 <a href={`#task-${t.id}`} className="font-medium underline-offset-4 hover:underline">
@@ -176,25 +187,32 @@ export function RoadmapBoard({ scope, facts, defaults }: { scope: string; facts:
         </section>
       )}
 
-      {roadmap.phases.map((ph) => (
-        <section key={ph.id} aria-labelledby={`ph-${ph.id}`}>
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id={`ph-${ph.id}`} className="text-lg font-semibold tracking-tight">
-              <span className="mr-2 font-mono text-primary">{ph.id}</span>
-              {ph.title}
-            </h2>
-            <span className="text-xs text-muted-foreground">
-              {ph.counts.completed} of {ph.counts.total} completed{ph.counts.needsReview ? ` · ${ph.counts.needsReview} need review` : ""}
-            </span>
-          </div>
-          <p className="mt-0.5 text-sm text-muted-foreground">{ph.blurb}</p>
-          <ul className="mt-3 divide-y rounded-md border bg-card">
-            {ph.tasks.map((t) => (
-              <TaskCard key={`${t.id}:${t.note}:${t.status}`} t={t} onStatus={onStatus} onNote={onNote} />
-            ))}
-          </ul>
-        </section>
-      ))}
+      <section aria-labelledby="plan-h" className="space-y-3">
+        <h2 id="plan-h" className="text-lg font-medium tracking-tight">
+          Your plan, in five phases
+        </h2>
+        {roadmap.phases.map((ph) => (
+          <details key={ph.id} open={nextPhase ? ph.id === nextPhase.id : ph.id === roadmap.phases[0]?.id} className="rounded-xl border bg-card" id={`phase-${ph.id}`}>
+            <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-2 px-4 py-3.5 sm:px-5 [&::-webkit-details-marker]:hidden">
+              <span className="font-medium">
+                <span className="mr-2 font-mono text-primary">{ph.id}</span>
+                {ph.title}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {ph.counts.completed} of {ph.counts.total} completed{ph.counts.needsReview ? ` · ${ph.counts.needsReview} need review` : ""}
+              </span>
+            </summary>
+            <div className="border-t">
+              <p className="px-4 pt-3 text-sm text-muted-foreground sm:px-5">{ph.blurb}</p>
+              <ul className="mt-1 divide-y">
+                {ph.tasks.map((t) => (
+                  <TaskCard key={`${t.id}:${t.note}:${t.status}`} t={t} onStatus={onStatus} onNote={onNote} />
+                ))}
+              </ul>
+            </div>
+          </details>
+        ))}
+      </section>
       <p className="text-xs text-muted-foreground">Task progress is saved in this browser. Marking a task completed records your progress only: it is never a regulatory approval and nothing is submitted to any authority.</p>
     </div>
   );

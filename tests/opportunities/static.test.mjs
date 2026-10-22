@@ -20,8 +20,8 @@ describe("navigation", () => {
     }
   });
   it("includes the seven journey destinations the product promises", () => {
-    const labels = navigation.map((i) => i.label).join(" | ");
-    for (const l of ["Export Opportunities", "Landed Cost", "Compliance & Testing", "CEPA & Incentives", "Export Documents", "Export Readiness Roadmap", "Expert Assistance"]) assert.ok(labels.includes(l), l);
+    const labels = navigation.map((i) => i.label).join(" | ").toLowerCase();
+    for (const l of ["Export Opportunities", "Landed Cost", "Compliance & Testing", "CEPA & Incentives", "Export Documents", "Export Readiness Roadmap", "Expert Assistance"]) assert.ok(labels.includes(l.toLowerCase()), l);
   });
   it("preview pages say they are previews", () => {
     for (const item of navigation.filter((i) => i.status === "preview")) {

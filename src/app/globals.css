@@ -14,39 +14,39 @@
  *   --border is a decorative divider; form controls use --input (>= 3:1).
  */
 :root {
-  --background: #f7f8f6;
-  --foreground: #172b32;
+  --background: #f7f6f2;
+  --foreground: #252d2c;
 
   --card: #ffffff;
-  --card-foreground: #172b32;
+  --card-foreground: #252d2c;
   --popover: #ffffff;
-  --popover-foreground: #172b32;
+  --popover-foreground: #252d2c;
 
-  --primary: #356b68;
+  --primary: #426f67;
   --primary-foreground: #ffffff;
-  --secondary: #eef1ee;
-  --secondary-foreground: #172b32;
-  --muted: #eef1ee;
-  --muted-foreground: #55676c;
-  --accent: #e8eeeb;
-  --accent-foreground: #172b32;
+  --secondary: #efede7;
+  --secondary-foreground: #252d2c;
+  --muted: #efede7;
+  --muted-foreground: #5b6562;
+  --accent: #dce7e2;
+  --accent-foreground: #252d2c;
 
-  --border: #e4e9e6;
-  --input: #7f918b;
-  --ring: #356b68;
+  --border: #e7e5df;
+  --input: #858d89;
+  --ring: #426f67;
   --destructive: #a73a2b;
 
   --amber: #c28f5c;
   --amber-text: #7a4f22;
 
-  --sidebar: #f0f3f0;
-  --sidebar-foreground: #172b32;
-  --sidebar-primary: #356b68;
+  --sidebar: #f2f0ea;
+  --sidebar-foreground: #252d2c;
+  --sidebar-primary: #426f67;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e4ebe8;
-  --sidebar-accent-foreground: #172b32;
-  --sidebar-border: #e4e9e6;
-  --sidebar-ring: #356b68;
+  --sidebar-accent: #dce7e2;
+  --sidebar-accent-foreground: #252d2c;
+  --sidebar-border: #e7e5df;
+  --sidebar-ring: #426f67;
 
   /* Evidence / status labels (see src/components/status-badge.tsx) */
   --status-verified-bg: #e3eeec;
@@ -55,9 +55,9 @@
   --status-secondary-bg: #f1efe6;
   --status-secondary-fg: #5e5530;
   --status-secondary-border: #dcd7bf;
-  --status-user-bg: #eef1ee;
+  --status-user-bg: #efede7;
   --status-user-fg: #3f5258;
-  --status-user-border: #d3dbd7;
+  --status-user-border: #dcd9d0;
   --status-estimate-bg: #f6ecdf;
   --status-estimate-fg: #7a4f22;
   --status-estimate-border: #e5cdae;
@@ -68,11 +68,14 @@
   --status-missing-fg: #8a3326;
   --status-missing-border: #e9c4bc;
   --status-planned-bg: transparent;
-  --status-planned-fg: #55676c;
+  --status-planned-fg: #5b6562;
   --status-planned-border: #c9d3ce;
 
   /* Modest radii: 6px base */
-  --radius: 0.375rem;
+  --radius: 0.5rem;
+
+  /* Pale mint: calm highlight for the current step and the one next action */
+  --mint: #dce7e2;
 }
 
 @theme inline {
@@ -98,6 +101,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-mint: var(--mint);
   --color-amber: var(--amber);
   --color-amber-text: var(--amber-text);
 
@@ -132,8 +136,47 @@
   h3 {
     @apply font-heading text-foreground;
   }
+  h1 {
+    letter-spacing: -0.02em;
+  }
+  h2,
+  h3 {
+    letter-spacing: -0.01em;
+  }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+
+/* Deliberate type scale and one gentle motion. Both respect reduced-motion. */
+@layer utilities {
+  .t-display {
+    font-size: clamp(2.125rem, 5.2vw, 3.5rem);
+    line-height: 1.06;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+  }
+  .t-lead {
+    font-size: clamp(1.0625rem, 1.6vw, 1.25rem);
+    line-height: 1.55;
+  }
+  .rise {
+    animation: rise 0.5s ease-out both;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
   }
 }
 

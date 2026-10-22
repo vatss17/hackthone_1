@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { StatusBadge, type StatusKind } from "@/components/status-badge";
 import { FIT_LABEL, MATERIAL_NAMES, PROCESS_NAMES } from "@/lib/opportunities/engine";
-import { CommercialDimension, DimensionBox, RegulatoryDimension } from "@/components/opportunities/dimensions";
+import { AssessmentStrip, CommercialDimension, DimensionBox, RegulatoryDimension } from "@/components/opportunities/dimensions";
 import { allItemIds, familyForEntry } from "@/lib/compliance/content";
 import { evidenceForEntry } from "@/lib/trade/evidence";
 import { fmtUsd } from "@/lib/trade/format";
@@ -121,7 +121,7 @@ export function OpportunityCard({ m, href, scope }: { m: MatchResult; href: stri
           </p>
         </DimensionBox>
 
-        <DimensionBox title="UAE demand evidence" status={ev.hasData ? "Reported trade for broad headings" : ev.loaded ? "No data" : "Not loaded here"} badge={ev.hasData ? "reported" : "missing"} href={`/opportunities/${ref}#uae`} cta="See the evidence and its limits">
+        <DimensionBox title="UAE demand evidence" status={ev.hasData ? "Reported trade for broad headings" : ev.loaded ? "No data" : "Not loaded here"} badge={ev.hasData ? "reported" : "missing"} href={`/opportunities/${ref}?stage=4`} cta="See the evidence and its limits">
           {ev.hasData ? (
             <>
               {ev.headings.slice(0, 2).map((h) => (
@@ -196,6 +196,49 @@ export function OpportunityCard({ m, href, scope }: { m: MatchResult; href: stri
           <Link href={href}>Explore export potential</Link>
         </Button>
       </div>
+    </article>
+  );
+}
+
+/**
+ * The answer first: what the product is, why it suits the factory, what is missing, the four assessments in one line each,
+ * and one clear next step. Everything else (full assessments, score breakdown, tooling, validations) is one click away.
+ */
+export function OpportunityRow({ m, href, scope }: { m: MatchResult; href: string; scope: string }) {
+  const e = m.entry;
+  const ev = evidenceForEntry(e.id);
+  const family = familyForEntry(e.id);
+  const ids = family ? allItemIds(family) : [];
+  const ref = href.split("/").pop() as string;
+  const gap = m.gaps[0] ?? `Tooling to confirm: ${e.tooling[0]}`;
+  return (
+    <article className="rounded-xl border bg-card" aria-labelledby={`row-${e.id}`}>
+      <div className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+          <div className="min-w-0 max-w-2xl">
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">{e.group}</p>
+            <h3 id={`row-${e.id}`} className="mt-1 text-xl font-medium tracking-tight">
+              {e.name}
+            </h3>
+            <p className="mt-2 text-[15px] leading-relaxed">{m.reasons[0]}</p>
+            <p className="mt-1 text-sm text-muted-foreground">To confirm: {gap.replace(/^Tooling to confirm: /, "")}</p>
+            {m.putsToWork.length > 0 && <p className="mt-2 inline-block rounded-md bg-mint px-2.5 py-1 text-xs font-medium">Puts your {m.putsToWork.map((p) => PROCESS_NAMES[p].toLowerCase()).join(" and ")} capability to work</p>}
+          </div>
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <FitMeter score={m.score} level={m.level} />
+            <Button asChild className="h-10 px-4">
+              <Link href={href}>Explore this opportunity</Link>
+            </Button>
+          </div>
+        </div>
+        <AssessmentStrip scope={scope} assessmentRef={ref} ids={ids} fit={FIT_LABEL[m.level]} evidence={ev.hasData ? "Reported trade data available" : ev.loaded ? "No data for this type" : "Not loaded here"} />
+      </div>
+      <details className="border-t">
+        <summary className="cursor-pointer list-none px-5 py-3 text-sm font-medium text-primary sm:px-6 [&::-webkit-details-marker]:hidden">See the full assessments and the score breakdown</summary>
+        <div className="border-t p-3 sm:p-4">
+          <OpportunityCard m={m} href={href} scope={scope} />
+        </div>
+      </details>
     </article>
   );
 }

@@ -113,6 +113,11 @@ export default async function FactoryProfilePage({ params, searchParams }: PageP
           <div className="flex flex-wrap gap-2">
             {isOwner && (
               <Button asChild variant="outline">
+                <Link href={`/factories/${factory.id}/setup`}>Guided setup</Link>
+              </Button>
+            )}
+            {isOwner && (
+              <Button asChild variant="outline">
                 <Link href={`/factories/${factory.id}/edit`}>Edit details</Link>
               </Button>
             )}

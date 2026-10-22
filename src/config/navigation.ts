@@ -18,6 +18,8 @@ export interface NavItem {
   status: NavStatus;
   /** Where it sits in the sidebar. */
   group: "workspace" | "journey";
+  /** Shown in the short main list. Everything else sits under "All export tools". */
+  primary?: boolean;
   /** One line describing what the module does. Documentation only. */
   description: string;
 }
@@ -25,7 +27,8 @@ export interface NavItem {
 export const navigation: NavItem[] = [
   {
     id: "overview",
-    label: "Overview",
+    primary: true,
+    label: "Home",
     href: "/",
     status: "available",
     group: "workspace",
@@ -33,7 +36,8 @@ export const navigation: NavItem[] = [
   },
   {
     id: "workspace",
-    label: "Export Workspace",
+    primary: true,
+    label: "My export workspace",
     href: "/workspace",
     status: "available",
     group: "workspace",
@@ -41,7 +45,8 @@ export const navigation: NavItem[] = [
   },
   {
     id: "factory",
-    label: "My Factory",
+    primary: true,
+    label: "My factory",
     href: "/factories",
     status: "available",
     group: "workspace",
@@ -49,7 +54,8 @@ export const navigation: NavItem[] = [
   },
   {
     id: "products",
-    label: "Products & Catalogue",
+    primary: true,
+    label: "My products",
     href: "/products",
     status: "available",
     group: "workspace",
@@ -57,7 +63,8 @@ export const navigation: NavItem[] = [
   },
   {
     id: "opportunities",
-    label: "Export Opportunities",
+    primary: true,
+    label: "Export opportunities",
     href: "/opportunities",
     status: "available",
     group: "journey",
@@ -129,6 +136,8 @@ export const navigation: NavItem[] = [
   },
 ];
 
+export const primaryNav = navigation.filter((i) => i.primary);
+export const moreNav = navigation.filter((i) => !i.primary);
 export const workspaceNav = navigation.filter((i) => i.group === "workspace");
 export const journeyNav = navigation.filter((i) => i.group === "journey");
 export const availableNav = navigation.filter((i) => i.status === "available");
