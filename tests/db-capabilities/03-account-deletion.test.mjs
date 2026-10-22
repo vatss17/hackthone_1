@@ -11,10 +11,10 @@ import { SKIP_REASON, auditActions, codeOf, factoryBody, migrationApplied, refer
 
 const CHILD = ["factory_processes", "machines", "factory_materials", "product_specifications", "product_materials", "factory_products", "certifications"];
 const ALL = [...CHILD, "products"];
-const strip = (r) => { const { created_by, updated_at, ...rest } = r; return rest; };
+const strip = (r) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== "created_by" && k !== "updated_at"));
 
 describe("account deletion beneath archived parents", { skip: !enabled }, () => {
-  let f, ready = false, orgA, orgB, F1, F2, P1, P2, snapshot, auditBefore;
+  let f, ready = false, orgA, F1, F2, P1, P2, snapshot, auditBefore;
   const tokenA = () => f.users.a.token;
   const tokenB = () => f.users.b.token;
   const rest = (t, m, p, body) => f.api.rest(t, m, p, body === undefined ? {} : { body });
@@ -25,7 +25,7 @@ describe("account deletion beneath archived parents", { skip: !enabled }, () => 
     ready = await migrationApplied(f.api, tokenA());
     if (!ready) return;
     orgA = (await f.createOrg("a")).body;
-    orgB = (await f.createOrg("b")).body;
+    await f.createOrg("b");
     const ref = await referenceIds(f.api, tokenA());
     const mk = async (t, path, body) => { const r = await rest(t, "POST", path, body); assert.ok(r.ok, `${path}: ${r.status} ${codeOf(r)}`); return rowsOf(r)[0]; };
     F1 = (await mk(tokenA(), "factories", factoryBody(orgA, `M14B1 ${f.runId} F1`))).id;

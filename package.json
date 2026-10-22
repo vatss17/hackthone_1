@@ -12,7 +12,12 @@
     "test:auth": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/auth/*.test.mjs",
     "test:onboarding": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/onboarding/*.test.mjs",
     "test:factories": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/factories/*.test.mjs",
-    "test:db:capabilities": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/db-capabilities/*.test.mjs"
+    "test:db:capabilities": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local --test --test-concurrency=1 tests/db-capabilities/*.test.mjs",
+    "demo:create": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local scripts/demo-scenario.mjs create",
+    "demo:reset": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local scripts/demo-scenario.mjs reset",
+    "demo:destroy": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local scripts/demo-scenario.mjs destroy",
+    "demo:status": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local scripts/demo-scenario.mjs status",
+    "test:opportunities": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/opportunities/*.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

@@ -20,8 +20,13 @@ export const instant = false;
  */
 async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
   // Validates the user on the server, then sends users without a company to /onboarding.
-  const { user } = await requireOrganization();
-  return <AppShell user={user}>{children}</AppShell>;
+  const { user, organization } = await requireOrganization();
+  // The synthetic demo company is always named with this prefix (see scripts/demo-scenario.mjs).
+  return (
+    <AppShell user={user} isDemo={organization.name.startsWith("DEMO")}>
+      {children}
+    </AppShell>
+  );
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

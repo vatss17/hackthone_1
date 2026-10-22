@@ -1,0 +1,460 @@
+import type { CatalogueEntry } from "./types.ts";
+
+/**
+ * Starter catalogue of finished plastic product categories (version 1).
+ *
+ * HAND-WRITTEN, GENERAL KNOWLEDGE. Not derived from trade data, not checked against any
+ * regulation, not a market study. It describes what each kind of product typically needs
+ * to make, and which questions a producer should ask before exporting it. A later version
+ * can add verified UAE trade data and AI-assisted enrichment WITHOUT changing the engine:
+ * the engine only reads this shape.
+ *
+ * Rules for editing this file:
+ *   - `whyUae` entries are hypotheses to test, written as such. No figures.
+ *   - `regulatoryFocus` lists topics to check, never what the law requires.
+ *   - `demandSignal` is an illustrative placeholder and is always shown as sample data.
+ */
+export const CATALOGUE_VERSION = "1.0 (illustrative starter set)";
+
+export const CATALOGUE: CatalogueEntry[] = [
+  // ---- Household and food storage (the anchors for "what you already make") ------------------
+  {
+    id: "food-storage-containers",
+    name: "Food storage containers and lunch boxes",
+    group: "Household and food storage",
+    summary: "Lidded containers for storing, carrying and reheating food.",
+    keywords: ["container", "tiffin", "lunch", "food box", "jar", "meal"],
+    processes: { requiredAll: ["injection_moulding"] },
+    materials: { preferred: ["PP"], possible: ["HDPE", "PET", "PC"] },
+    sizeClass: "small",
+    tooling: ["Multi-cavity body and lid moulds", "In-mould or post-moulding labelling or printing option"],
+    validations: ["Evidence that materials and colourants are suitable for food contact", "Dishwasher and microwave suitability claims, if made", "Lid seal and drop tests"],
+    whyUae: [
+      "Households and the food-service sector buy food storage in volume (hypothesis to test).",
+      "A mixed expatriate population may favour a range of sizes and set sizes (hypothesis to test).",
+    ],
+    demandSignal: "broad",
+    industries: [
+      { name: "Retail and supermarkets", applications: "Private-label and branded household ranges" },
+      { name: "Food service and catering", applications: "Portion, storage and takeaway containers" },
+      { name: "Online retail", applications: "Set-based household products" },
+    ],
+    regulatoryFocus: ["Food-contact suitability of materials and colourants", "Labelling and language requirements", "Claims such as microwave-safe or BPA-free"],
+    qualificationEffort: "heavier",
+  },
+  {
+    id: "household-storage-boxes",
+    name: "Household storage boxes and organisers",
+    group: "Household and food storage",
+    summary: "Stackable boxes, bins and organisers for the home and office.",
+    keywords: ["storage", "box", "bin", "organiser", "organizer", "tub", "drawer"],
+    processes: { requiredAll: ["injection_moulding"] },
+    materials: { preferred: ["PP", "HDPE"], possible: ["PS", "ABS"] },
+    sizeClass: "medium",
+    tooling: ["Body and lid moulds for each size", "Stacking and nesting design review"],
+    validations: ["Load and stacking tests", "Lid latch durability", "Colour and UV stability if used outdoors"],
+    whyUae: [
+      "Home organisation and moving-house products sell through retail and online channels (hypothesis to test).",
+      "Compact-apartment living may favour stackable formats (hypothesis to test).",
+    ],
+    demandSignal: "broad",
+    industries: [
+      { name: "Retail and home stores", applications: "Home organisation ranges" },
+      { name: "Online retail", applications: "Bundles and multi-size sets" },
+      { name: "Relocation and storage services", applications: "Moving and archive boxes" },
+    ],
+    regulatoryFocus: ["Labelling and language requirements", "Country-of-origin marking", "Plastics and sustainability rules where relevant"],
+    qualificationEffort: "lighter",
+  },
+
+  // ---- Adjacent products for an injection moulder -------------------------------------------
+  {
+    id: "crates-and-baskets",
+    name: "Crates, baskets and totes",
+    group: "Handling and logistics",
+    summary: "Open and ventilated crates and baskets for produce, retail and general handling.",
+    keywords: ["crate", "basket", "tote", "produce"],
+    processes: { requiredAll: ["injection_moulding"] },
+    materials: { preferred: ["HDPE", "PP"], possible: [] },
+    sizeClass: "medium",
+    tooling: ["Large body moulds (check press tonnage against mould size)", "Handle and stacking-lug design review"],
+    validations: ["Stacking load tests", "Impact tests at expected temperatures", "Food-contact evidence if used for food"],
+    whyUae: [
+      "Food distribution, retail and hospitality supply chains handle goods in reusable crates (hypothesis to test).",
+      "Hot conditions raise the importance of heat and UV resistance, which is a quality angle for your product (hypothesis to test).",
+    ],
+    demandSignal: "moderate",
+    industries: [
+      { name: "Food distribution and wholesale", applications: "Produce and chilled-goods handling" },
+      { name: "Retail logistics", applications: "Store replenishment" },
+      { name: "Hospitality", applications: "Kitchen and back-of-house handling" },
+    ],
+    regulatoryFocus: ["Food-contact suitability if used for food", "Labelling and language requirements"],
+    qualificationEffort: "moderate",
+  },
+  {
+    id: "caps-and-closures",
+    name: "Caps, closures and lids",
+    group: "Packaging components",
+    summary: "Screw caps, flip-tops and lids supplied to bottle and container fillers.",
+    keywords: ["cap", "closure", "lid", "stopper"],
+    processes: { requiredAll: ["injection_moulding"] },
+    materials: { preferred: ["PP", "HDPE"], possible: ["LDPE"] },
+    sizeClass: "small",
+    tooling: ["High-cavity-count closure moulds", "Vision or leak-test inspection station"],
+    validations: ["Torque and leak tests with the customer's container", "Tamper-evidence performance", "Food-contact evidence if used on food or drink"],
+    whyUae: [
+      "Local fillers and packers of food, beverage and household goods need closures (hypothesis to test).",
+      "This is a business-to-business product: fewer end-consumer claims, longer qualification with each customer (hypothesis to test).",
+    ],
+    demandSignal: "moderate",
+    industries: [
+      { name: "Food and beverage packers", applications: "Bottle and jar closures" },
+      { name: "Household chemicals", applications: "Dispensing and screw caps" },
+      { name: "Personal care", applications: "Flip-top and dispensing closures" },
+    ],
+    regulatoryFocus: ["Food-contact suitability where applicable", "Customer qualification and specification agreement"],
+    qualificationEffort: "moderate",
+  },
+  {
+    id: "planters-and-nursery",
+    name: "Planters, pots and nursery products",
+    group: "Garden and horticulture",
+    summary: "Flower pots, planters and nursery containers for homes, landscaping and growers.",
+    keywords: ["planter", "pot", "nursery", "garden", "seedling", "horticulture"],
+    processes: { requiredAll: ["injection_moulding"] },
+    materials: { preferred: ["PP", "HDPE"], possible: ["LLDPE"] },
+    sizeClass: "medium",
+    tooling: ["Moulds per size and style", "UV-stabilised masterbatch sourcing"],
+    validations: ["UV and heat ageing evidence", "Drainage and strength checks"],
+    whyUae: [
+      "Landscaping, hospitality and residential developments use planters at scale (hypothesis to test).",
+      "Strong sun makes UV stability a real selling point if you can evidence it (hypothesis to test).",
+    ],
+    demandSignal: "moderate",
+    industries: [
+      { name: "Landscaping contractors", applications: "Commercial and residential planting schemes" },
+      { name: "Garden centres and retail", applications: "Consumer pot and planter ranges" },
+      { name: "Hospitality and developments", applications: "Outdoor and lobby planters" },
+    ],
+    regulatoryFocus: ["Labelling and language requirements", "Country-of-origin marking"],
+    qualificationEffort: "lighter",
+  },
+  {
+    id: "buckets-and-cleaning-ware",
+    name: "Buckets, mugs and cleaning ware",
+    group: "Household goods",
+    summary: "Buckets, bath mugs, dustpans and similar everyday household items.",
+    keywords: ["bucket", "mug", "dustpan", "bathware", "cleaning", "jug"],
+    processes: { requiredAll: ["injection_moulding"] },
+    materials: { preferred: ["PP", "HDPE"], possible: ["LDPE"] },
+    sizeClass: "medium",
+    tooling: ["Moulds per product", "Handle attachment (pin or moulded) design review"],
+    validations: ["Handle pull-out and load tests", "Colour fastness"],
+    whyUae: [
+      "Everyday household goods have steady replacement demand through retail and cleaning contractors (hypothesis to test).",
+      "Price competition is likely to be strong; export viability will depend on landed cost (to be assessed).",
+    ],
+    demandSignal: "broad",
+    industries: [
+      { name: "Supermarkets and hypermarkets", applications: "Household ranges" },
+      { name: "Cleaning contractors", applications: "Professional cleaning supplies" },
+      { name: "Hospitality", applications: "Housekeeping supplies" },
+    ],
+    regulatoryFocus: ["Labelling and language requirements", "Country-of-origin marking", "Food-contact suitability if marketed for food use"],
+    qualificationEffort: "lighter",
+  },
+  {
+    id: "stackable-furniture",
+    name: "Stackable chairs, stools and tables",
+    group: "Furniture",
+    summary: "Moulded polypropylene seating and small tables for indoor and outdoor use.",
+    keywords: ["chair", "stool", "table", "furniture", "seating"],
+    processes: { requiredAll: ["injection_moulding"] },
+    materials: { preferred: ["PP"], possible: ["HDPE", "PA"] },
+    sizeClass: "large",
+    tooling: ["Large single-piece chair moulds (needs a large press)", "Gas-assist or structural-foam options for stiffness", "UV-stabilised compounds"],
+    validations: ["Load and fatigue tests for seating", "Stability tests", "UV and heat ageing", "Stacking height checks"],
+    whyUae: [
+      "Hospitality, cafes, events and outdoor spaces buy stackable seating (hypothesis to test).",
+      "Design and colour are differentiators; a design partner may help (to be explored).",
+    ],
+    demandSignal: "moderate",
+    industries: [
+      { name: "Hospitality and cafes", applications: "Indoor and outdoor seating" },
+      { name: "Events and venues", applications: "Stackable event seating" },
+      { name: "Education and public buildings", applications: "Institutional seating" },
+    ],
+    regulatoryFocus: ["Furniture strength and safety standards that buyers may require", "Flammability expectations for some venues", "Labelling and language requirements"],
+    qualificationEffort: "moderate",
+  },
+  {
+    id: "hangers-and-laundry",
+    name: "Hangers and laundry products",
+    group: "Household goods",
+    summary: "Clothes hangers, pegs and laundry baskets for retail, hotels and laundries.",
+    keywords: ["hanger", "laundry", "peg", "clothes"],
+    processes: { requiredAll: ["injection_moulding"] },
+    materials: { preferred: ["PP"], possible: ["HDPE", "ABS", "PS"] },
+    sizeClass: "small",
+    tooling: ["High-cavity hanger moulds", "Metal hook insertion or assembly step"],
+    validations: ["Load tests per hanger type", "Colour consistency"],
+    whyUae: [
+      "Hotels, laundries and fashion retail buy hangers in volume (hypothesis to test).",
+      "Low unit value means shipping efficiency (cartonisation) matters for viability (to be assessed).",
+    ],
+    demandSignal: "moderate",
+    industries: [
+      { name: "Hospitality and laundries", applications: "Guest-room and laundry supplies" },
+      { name: "Fashion retail", applications: "Store and wardrobe hangers" },
+      { name: "Retail household", applications: "Home wardrobe ranges" },
+    ],
+    regulatoryFocus: ["Labelling and language requirements", "Country-of-origin marking"],
+    qualificationEffort: "lighter",
+  },
+  {
+    id: "food-service-ware",
+    name: "Reusable food-service ware",
+    group: "Food service",
+    summary: "Reusable trays, bowls and serving ware for canteens, cafes and catering.",
+    keywords: ["tray", "bowl", "plate", "tableware", "cutlery", "serving"],
+    processes: { requiredAll: ["injection_moulding"] },
+    materials: { preferred: ["PP"], possible: ["PC", "PET", "HDPE"] },
+    sizeClass: "medium",
+    tooling: ["Moulds per item", "Printing or decoration option"],
+    validations: ["Food-contact evidence for materials and colourants", "Dishwasher durability", "Stain and odour checks"],
+    whyUae: [
+      "Catering, canteens and hospitality operate at scale and buy durable ware (hypothesis to test).",
+      "Rules on single-use plastics have been introduced in parts of the UAE; reusable, durable positioning may be an angle, but applicability of any rule must be checked against official sources.",
+    ],
+    demandSignal: "moderate",
+    industries: [
+      { name: "Catering and canteens", applications: "Reusable trays and bowls" },
+      { name: "Hospitality", applications: "Back-of-house and buffet ware" },
+      { name: "Education and healthcare catering", applications: "Institutional food service" },
+    ],
+    regulatoryFocus: ["Food-contact suitability of materials and colourants", "Single-use plastic restrictions (applicability to be checked)", "Labelling and language requirements"],
+    qualificationEffort: "heavier",
+  },
+
+  // ---- Adjacent products that also use extrusion ---------------------------------------------
+  {
+    id: "irrigation-drip",
+    name: "Drip irrigation tubing and fittings",
+    group: "Water and irrigation",
+    summary: "Drip lines, tubing and push-fit connectors for landscaping and farming.",
+    keywords: ["irrigation", "drip", "hose", "sprinkler"],
+    processes: { requiredAll: ["extrusion"], helpful: ["injection_moulding"] },
+    materials: { preferred: ["LLDPE", "HDPE", "LDPE"], possible: ["PP"] },
+    sizeClass: "small",
+    tooling: ["Extrusion dies and sizing equipment for tubing", "Emitter insertion or inline dripper line (if making drip line)", "Injection moulds for connectors and fittings"],
+    validations: ["Pressure and burst tests", "UV and chlorine resistance evidence", "Dimensional tolerance checks for fitting compatibility"],
+    whyUae: [
+      "Landscaping, agriculture and green-space projects depend on irrigation in a dry climate (hypothesis to test).",
+      "Water efficiency is a recurring theme in the region, which may support a drip-focused offer (hypothesis to test).",
+    ],
+    demandSignal: "moderate",
+    industries: [
+      { name: "Landscaping contractors", applications: "Commercial and residential irrigation" },
+      { name: "Agriculture and greenhouses", applications: "Crop and greenhouse drip lines" },
+      { name: "Irrigation distributors", applications: "Tubing and fittings ranges" },
+    ],
+    regulatoryFocus: ["Product performance standards buyers may require", "Labelling and language requirements", "Country-of-origin marking"],
+    qualificationEffort: "moderate",
+  },
+  {
+    id: "conduits-and-ducts",
+    name: "Cable conduits and ducts",
+    group: "Construction and electrical",
+    summary: "Extruded conduit, trunking and ducts that protect and route cables.",
+    keywords: ["conduit", "duct", "trunking", "cable"],
+    processes: { requiredAll: ["extrusion"], helpful: ["injection_moulding"] },
+    materials: { preferred: ["PVC", "HDPE", "PP"], possible: ["ABS"] },
+    sizeClass: "small",
+    tooling: ["Extrusion dies per profile and diameter", "Cutting, belling and packaging line", "Injection moulds for junction and bend fittings"],
+    validations: ["Crush and impact tests", "Fire-behaviour evidence where specified", "Dimensional checks against the specification the buyer requires"],
+    whyUae: [
+      "Construction and infrastructure activity uses conduit in volume (hypothesis to test).",
+      "Buyers usually buy to a stated specification, so qualification is likely to be a gate (to be assessed).",
+    ],
+    demandSignal: "moderate",
+    industries: [
+      { name: "Electrical contractors", applications: "Building wiring" },
+      { name: "Construction and real estate", applications: "Residential and commercial projects" },
+      { name: "Electrical wholesalers", applications: "Conduit and fittings ranges" },
+    ],
+    regulatoryFocus: ["Electrical product standards and conformity expectations", "Fire-behaviour requirements for specific uses", "Labelling and language requirements"],
+    qualificationEffort: "heavier",
+  },
+  {
+    id: "pipes-and-fittings",
+    name: "Plastic pipes and fittings",
+    group: "Water and irrigation",
+    summary: "Extruded pipes with injection-moulded fittings for water, drainage and utilities.",
+    keywords: ["pipe", "fitting", "plumbing", "drain"],
+    processes: { requiredAll: ["extrusion"], helpful: ["injection_moulding"] },
+    materials: { preferred: ["HDPE", "PP", "PVC"], possible: [] },
+    sizeClass: "medium",
+    tooling: ["Extrusion lines and dies per diameter and pressure class", "Injection moulds for fittings (press size depends on fitting size)", "In-house test equipment for pressure testing"],
+    validations: ["Pressure-class and long-term hydrostatic evidence", "Third-party product certification where buyers require it", "Material compound evidence"],
+    whyUae: [
+      "Construction, utilities and landscaping buy pipes at scale (hypothesis to test).",
+      "Approvals for water-contact products are often a hard gate; worth understanding early before investing (to be assessed).",
+    ],
+    demandSignal: "broad",
+    industries: [
+      { name: "Contractors and developers", applications: "Plumbing, drainage and utilities" },
+      { name: "Plumbing wholesalers", applications: "Pipe and fitting ranges" },
+      { name: "Landscaping and agriculture", applications: "Water distribution" },
+    ],
+    regulatoryFocus: ["Water-contact product approvals", "Pipe performance standards and certification expected by buyers", "Third-party testing and certification requirements"],
+    qualificationEffort: "heavier",
+  },
+  {
+    id: "extruded-profiles-and-trims",
+    name: "Extruded profiles, trims and edge strips",
+    group: "Construction and furniture components",
+    summary: "Custom plastic profiles, edge banding and trims supplied to other manufacturers.",
+    keywords: ["profile", "trim", "edge", "banding", "strip"],
+    processes: { requiredAll: ["extrusion"] },
+    materials: { preferred: ["PVC", "PP", "ABS"], possible: ["HIPS", "HDPE"] },
+    sizeClass: "small",
+    tooling: ["Custom profile dies", "Calibration and cooling tooling per profile", "Colour-matching capability"],
+    validations: ["Dimensional tolerance and straightness", "Colour match", "Adhesion or fitting tests with the customer's parts"],
+    whyUae: [
+      "Furniture, joinery and fit-out businesses buy components to their own drawings (hypothesis to test).",
+      "Custom components mean fewer end-consumer rules but customer-specific qualification (to be assessed).",
+    ],
+    demandSignal: "niche",
+    industries: [
+      { name: "Furniture and joinery makers", applications: "Edge banding and trims" },
+      { name: "Fit-out contractors", applications: "Interior profiles" },
+      { name: "Appliance and equipment makers", applications: "Gaskets and trims" },
+    ],
+    regulatoryFocus: ["Customer specification agreement", "Fire-behaviour requirements for specific uses"],
+    qualificationEffort: "moderate",
+  },
+  {
+    id: "industrial-pallets",
+    name: "Plastic pallets and large industrial bins",
+    group: "Handling and logistics",
+    summary: "Reusable pallets and large bins for warehouses, food and pharma logistics.",
+    keywords: ["pallet", "industrial bin", "wheelie"],
+    processes: { requiredAll: ["injection_moulding"] },
+    materials: { preferred: ["HDPE", "PP"], possible: [] },
+    sizeClass: "large",
+    tooling: ["Very large pallet moulds (needs a large press)", "Reinforcement design and testing"],
+    validations: ["Static, dynamic and racking load tests", "Impact at temperature", "Hygiene evidence for food or pharma use"],
+    whyUae: [
+      "The UAE is a logistics and re-export hub with large warehouse operations (hypothesis to test).",
+      "Pallets are heavy and bulky, so freight cost is likely to dominate viability (to be assessed).",
+    ],
+    demandSignal: "moderate",
+    industries: [
+      { name: "Logistics and warehousing", applications: "Reusable load carriers" },
+      { name: "Food and pharma distribution", applications: "Hygienic handling" },
+      { name: "Manufacturing", applications: "Internal material flow" },
+    ],
+    regulatoryFocus: ["Load-rating evidence buyers require", "Food-contact suitability if used for food"],
+    qualificationEffort: "moderate",
+  },
+
+  // ---- Stretch options that need a process the factory may not have --------------------------
+  {
+    id: "blow-moulded-bottles",
+    name: "Blow-moulded bottles, jerry cans and drums",
+    group: "Packaging and containers",
+    summary: "Hollow containers for liquids: bottles, jerry cans and small drums.",
+    keywords: ["bottle", "jerry can", "jerrycan", "drum"],
+    processes: { requiredAll: ["blow_moulding"] },
+    materials: { preferred: ["HDPE"], possible: ["PP", "PET", "LDPE"] },
+    sizeClass: "medium",
+    tooling: ["Blow-moulding machine and moulds", "Neck and closure design aligned with caps"],
+    validations: ["Drop, top-load and leak tests", "Chemical compatibility for the contents", "Food or chemical-contact evidence"],
+    whyUae: [
+      "Household chemicals, food, lubricants and water-related products need bottles and cans (hypothesis to test).",
+      "Requires a process you have not declared. A new machine is a major investment (to be assessed).",
+    ],
+    demandSignal: "broad",
+    industries: [
+      { name: "Household and industrial chemicals", applications: "Cleaning and chemical packaging" },
+      { name: "Food and beverage", applications: "Edible oil, juice and dairy packaging" },
+      { name: "Lubricants and automotive", applications: "Oil and coolant containers" },
+    ],
+    regulatoryFocus: ["Food-contact suitability where applicable", "Dangerous-goods packaging requirements for chemicals", "Labelling and language requirements"],
+    qualificationEffort: "heavier",
+  },
+  {
+    id: "thermoformed-trays",
+    name: "Thermoformed trays and clamshells",
+    group: "Packaging and containers",
+    summary: "Formed trays, clamshells and lids for fresh produce, bakery and retail packaging.",
+    keywords: ["clamshell", "thermoform", "blister", "punnet"],
+    processes: { requiredAll: ["thermoforming"], helpful: ["extrusion"] },
+    materials: { preferred: ["PET", "PP", "PS"], possible: ["HIPS", "PVC"] },
+    sizeClass: "medium",
+    tooling: ["Thermoforming machine and moulds", "Sheet extrusion or sheet sourcing", "Trimming and stacking line"],
+    validations: ["Food-contact evidence", "Clarity and strength checks", "Seal and lid-fit tests"],
+    whyUae: [
+      "Fresh food, bakery and retail packaging use formed trays and clamshells (hypothesis to test).",
+      "Requires a process you have not declared. Sheet extrusion could be a partial start (to be assessed).",
+    ],
+    demandSignal: "broad",
+    industries: [
+      { name: "Fresh produce and bakery", applications: "Retail packaging" },
+      { name: "Food service", applications: "Takeaway and delivery packaging" },
+      { name: "Retail", applications: "Blister and display packaging" },
+    ],
+    regulatoryFocus: ["Food-contact suitability", "Single-use plastic restrictions (applicability to be checked)", "Labelling and language requirements"],
+    qualificationEffort: "heavier",
+  },
+  {
+    id: "rotomoulded-tanks",
+    name: "Rotationally moulded tanks and large containers",
+    group: "Water and irrigation",
+    summary: "Seamless water tanks, bins and large containers made by rotational moulding.",
+    keywords: ["tank", "rotomould", "roto-mould"],
+    processes: { requiredAll: ["rotational_moulding"] },
+    materials: { preferred: ["LLDPE", "HDPE"], possible: ["PP"] },
+    sizeClass: "large",
+    tooling: ["Rotational moulding machine and large moulds", "Powder grinding or compound sourcing"],
+    validations: ["Wall-thickness and impact checks", "Drinking-water contact evidence for potable tanks", "UV stabilisation evidence"],
+    whyUae: [
+      "Water storage for buildings, farms and construction sites uses large tanks (hypothesis to test).",
+      "Very bulky: freight is likely to be decisive, and requires a process you have not declared (to be assessed).",
+    ],
+    demandSignal: "niche",
+    industries: [
+      { name: "Construction and developments", applications: "Water storage" },
+      { name: "Agriculture", applications: "Farm water storage" },
+      { name: "Industrial", applications: "Chemical and process tanks" },
+    ],
+    regulatoryFocus: ["Drinking-water contact approvals for potable use", "Labelling and language requirements"],
+    qualificationEffort: "heavier",
+  },
+];
+
+export const CATALOGUE_BY_ID: Record<string, CatalogueEntry> = Object.fromEntries(CATALOGUE.map((e) => [e.id, e]));
+
+/**
+ * Checks that apply to almost any plastic product exported to the UAE. They are listed as topics
+ * to confirm, never as findings. Used on every product exploration page.
+ */
+export const COMMON_CONSIDERATIONS: { topic: string; note: string }[] = [
+  {
+    topic: "Product classification (HS code)",
+    note: "Any HS code you have entered is your own claim and is not verified. Classification decides duty, reporting and some rules, so it must be confirmed before costing is relied on.",
+  },
+  {
+    topic: "UAE and GCC technical requirements",
+    note: "Whether a technical regulation or conformity scheme applies to this product has not been assessed. This is the first thing a compliance review would settle.",
+  },
+  {
+    topic: "Labelling, language and marking",
+    note: "Labelling, language (including Arabic) and origin-marking expectations for this product have not been checked.",
+  },
+  {
+    topic: "Importer and buyer requirements",
+    note: "Importers and retail buyers often ask for test reports or certificates beyond the legal minimum. These have not been collected.",
+  },
+];

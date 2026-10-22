@@ -6,9 +6,12 @@ import { NavList } from "@/components/layout/nav-list";
 
 export function AppShell({
   user,
+  isDemo = false,
   children,
 }: {
   user: { email: string };
+  /** The company is the synthetic demo scenario: say so on every page. */
+  isDemo?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -48,9 +51,14 @@ export function AppShell({
           </div>
         </header>
 
+        {isDemo && (
+          <div role="note" className="border-b border-dashed border-amber/60 bg-(--status-estimate-bg) px-4 py-1.5 text-center text-xs font-medium text-(--status-estimate-fg) sm:px-6">
+            Demo scenario: every company, factory and product here is sample data, not a real manufacturer.
+          </div>
+        )}
         <main
           id="main"
-          className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6 lg:px-8 lg:py-10"
+          className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 lg:px-8 lg:py-10"
         >
           {children}
         </main>

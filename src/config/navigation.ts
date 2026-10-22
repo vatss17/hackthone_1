@@ -3,23 +3,20 @@
  *
  * This is the single source of truth for the shell's navigation.
  *
- * - `available`: a real page exists. Rendered as a working link.
- * - `planned`: no page exists yet. Rendered as plain, non-interactive text
- *   under "Planned modules". Never rendered as a link and never presented as
- *   implemented.
- *
- * To ship a module: build its route, set `status: "available"`. The `href`
- * values for planned items are intended future paths and may change.
+ * - `available`: a working module. Rendered as a normal link.
+ * - `preview`: a real page that honestly shows what the module will do, what it needs and what
+ *   is not yet connected. Rendered as a link with a "Preview" tag. Never presented as working.
+ * - `planned`: no page exists yet. Rendered as plain, non-interactive text.
  */
 
-export type NavStatus = "available" | "planned";
+export type NavStatus = "available" | "preview" | "planned";
 
 export interface NavItem {
   id: string;
   label: string;
   href: string;
   status: NavStatus;
-  /** One line describing what the module will do. Documentation only. */
+  /** One line describing what the module does. Documentation only. */
   description: string;
 }
 
@@ -36,72 +33,66 @@ export const navigation: NavItem[] = [
     label: "My Factory",
     href: "/factories",
     status: "available",
-    description: "Register and manage your factories. Machinery, materials and capacity come later.",
+    description: "Factories, processes, capacity, machinery and materials.",
   },
   {
     id: "products",
-    label: "Products & Capabilities",
+    label: "Products",
     href: "/products",
-    status: "planned",
-    description: "Existing products, manufacturing capabilities and certifications.",
+    status: "available",
+    description: "The finished products you make, with specifications and where they are made.",
   },
   {
     id: "opportunities",
-    label: "UAE Opportunities",
+    label: "Export Opportunities",
     href: "/opportunities",
-    status: "planned",
-    description: "UAE import demand, supplier countries and adjacent products.",
+    status: "available",
+    description: "Opportunities for your products, and what else your factory could make.",
   },
   {
     id: "viability",
-    label: "Export Viability",
+    label: "Landed Cost & Viability",
     href: "/viability",
-    status: "planned",
+    status: "preview",
     description: "Landed cost, freight and tariff estimates, pricing scenarios.",
   },
   {
     id: "compliance",
-    label: "Compliance & Qualification",
+    label: "Compliance & Testing",
     href: "/compliance",
-    status: "planned",
+    status: "preview",
     description: "Product requirement screening, testing and certification gaps.",
   },
   {
     id: "schemes",
-    label: "Government Schemes",
+    label: "CEPA & Incentives",
     href: "/schemes",
-    status: "planned",
+    status: "preview",
     description: "India–UAE CEPA, rules of origin and Indian export incentives.",
   },
   {
     id: "documentation",
-    label: "Export Documentation",
+    label: "Export Documents",
     href: "/documentation",
-    status: "planned",
+    status: "preview",
     description: "Document checklist, drafts and missing-document tracking.",
   },
   {
     id: "roadmap",
-    label: "Export Roadmap",
+    label: "Export Readiness Roadmap",
     href: "/roadmap",
-    status: "planned",
+    status: "preview",
     description: "Prioritised action plan, progress and readiness reports.",
   },
   {
     id: "services",
-    label: "Assisted Services",
+    label: "Expert Assistance",
     href: "/services",
-    status: "planned",
+    status: "preview",
     description: "Requests for testing, freight quotes and specialist support.",
-  },
-  {
-    id: "evidence",
-    label: "Product Evidence",
-    href: "/evidence",
-    status: "planned",
-    description: "Specifications, test reports, certificates and their validity.",
   },
 ];
 
 export const availableNav = navigation.filter((i) => i.status === "available");
+export const previewNav = navigation.filter((i) => i.status === "preview");
 export const plannedNav = navigation.filter((i) => i.status === "planned");

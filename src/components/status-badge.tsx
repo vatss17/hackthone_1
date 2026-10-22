@@ -10,6 +10,7 @@ export type StatusKind =
   | "user"
   | "estimate"
   | "ai"
+  | "inferred"
   | "expert"
   | "missing"
   | "demo"
@@ -38,6 +39,11 @@ const styles: Record<StatusKind, { label: string; className: string }> = {
   },
   ai: {
     label: "AI suggested",
+    className:
+      "bg-(--status-ai-bg) text-(--status-ai-fg) border-(--status-ai-border)",
+  },
+  inferred: {
+    label: "Inferred",
     className:
       "bg-(--status-ai-bg) text-(--status-ai-fg) border-(--status-ai-border)",
   },

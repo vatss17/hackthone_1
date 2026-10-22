@@ -2,7 +2,21 @@
 
 Working title. An export enablement platform for Indian manufacturers (initial focus: finished plastic products to the UAE).
 
-**Status: M1.3C.3 (factory registration; not yet reviewed or committed).** Earlier: M1.2 design foundation, M1.3B database foundation. The app has a responsive shell, real email/password authentication on Supabase Auth, and a static Overview page behind sign-in. There is no onboarding, no business features and no AI integration yet. Only Overview is navigable; the other modules are listed as planned and are not links.
+**Status: Demo Sprint 1, the Manufacturer Intelligence Workspace (not yet committed).** Working: sign-in, company and factory registration, a manufacturing profile (processes, capacity, machinery, materials, products with specifications and factory association), **Export Opportunities** with a transparent rules-based Capability-to-Opportunity engine, and a product exploration page. Landed cost, compliance, CEPA, documents, roadmap and expert assistance are honest **previews**. UAE demand, tariffs, freight and regulations are **not connected**: anything illustrative is labelled Demo. See `docs/post-demo-roadmap.md` for what remains.
+
+## Run the demo
+
+The demo is a synthetic manufacturer (DEMO Sample Polymers: injection moulding and extrusion, PP and HDPE, several machines, containers and storage products). It lives in the development Supabase project under its own account and never touches a real company.
+
+```bash
+npm run demo:create    # create it (needs .env.local and .env.test.local)
+npm run dev            # then open http://localhost:3000 and sign in
+npm run demo:reset     # delete and recreate the demo account and data
+npm run demo:destroy   # remove it
+npm run demo:status
+```
+
+Sign in as `demo.manufacturer@example.com`. The password is random and stored in the git-ignored `.env.demo.local`; it is never printed. The app shows a "Demo scenario" banner whenever you are signed in to it.
 
 ## Requirements
 
@@ -29,6 +43,7 @@ Open <http://localhost:3000>.
 npm run lint        # ESLint
 npm run typecheck   # TypeScript, no emit
 npm run build       # production build
+npm run test:opportunities   # offline tests: matching engine, validation, navigation (no network)
 npm run start       # serve the production build
 ```
 

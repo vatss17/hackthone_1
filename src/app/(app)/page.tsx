@@ -5,46 +5,20 @@ import { listFactories } from "@/lib/factories";
 import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/section";
 import { StatusBadge, type StatusKind } from "@/components/status-badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { loadEngineInput } from "@/lib/capabilities";
+import { FIT_LABEL, discover } from "@/lib/opportunities/engine";
 
-const journey = [
-  {
-    title: "Map your factory",
-    text: "Record machinery, materials, capacity, products and certifications, and upload catalogues and documents.",
-  },
-  {
-    title: "Find UAE opportunities",
-    text: "Review UAE import demand, competing supplier countries and adjacent products your factory could make, using official trade data.",
-  },
-  {
-    title: "Test commercial viability",
-    text: "Estimate landed cost, duties and freight, and compare pricing scenarios with every assumption visible.",
-  },
-  {
-    title: "Qualify the product",
-    text: "Screen against UAE product requirements, find testing and certification gaps, and list the evidence needed.",
-  },
-  {
-    title: "Check trade benefits",
-    text: "Understand India–UAE CEPA, rules of origin and Indian export incentives, and the documents each one needs.",
-  },
-  {
-    title: "Prepare documentation",
-    text: "Get a personalised checklist, draft commercial documents and track what is still missing.",
-  },
-  {
-    title: "Plan and request help",
-    text: "Follow a prioritised roadmap, download readiness reports and request testing, freight or specialist support.",
-  },
+type Step = { title: string; text: string; href: string; status: "available" | "preview" };
+
+const journey: Step[] = [
+  { title: "Map your factory", text: "Declare processes, capacity, machinery, materials and products.", href: "/factories", status: "available" },
+  { title: "Find UAE opportunities", text: "See products you make and products your factory could also make, and explore each one.", href: "/opportunities", status: "available" },
+  { title: "Test commercial viability", text: "Estimate landed cost and margin with every assumption visible.", href: "/viability", status: "preview" },
+  { title: "Qualify the product", text: "Screen requirements and find testing and certification gaps.", href: "/compliance", status: "preview" },
+  { title: "Check trade benefits", text: "Understand CEPA, rules of origin and Indian export incentives.", href: "/schemes", status: "preview" },
+  { title: "Prepare documentation", text: "A personalised checklist and drafts for you to review.", href: "/documentation", status: "preview" },
+  { title: "Plan and request help", text: "A prioritised roadmap, and requests to experts for what you cannot do alone.", href: "/roadmap", status: "preview" },
 ];
 
 const labels: { kind: StatusKind; text: string }[] = [
@@ -63,6 +37,10 @@ const labels: { kind: StatusKind; text: string }[] = [
   {
     kind: "estimate",
     text: "Calculated from stated assumptions. Not a quote and not a guarantee.",
+  },
+  {
+    kind: "inferred",
+    text: "Worked out by transparent rules from your own data. A starting point to investigate, not a fact about the market.",
   },
   {
     kind: "ai",
@@ -93,12 +71,15 @@ export default async function OverviewPage() {
   // redirect back here, so archiving the last factory cannot loop.
   const { active: factories } = await listFactories(organization.id);
   if (factories.length === 0) redirect("/factories/new");
+  const { input, counts } = await loadEngineInput(organization.id);
+  const found = discover(input);
+  const top = found.adjacent.slice(0, 3);
   return (
     <>
       <PageHeader
         eyebrow="Overview"
         title={`Welcome, ${organization.name}`}
-        description="A guided path from factory capabilities to a first export, starting with Indian manufacturers of finished plastic products and the UAE."
+        description="Make exporting effortless. Start from what your factory can make, find what it could make next, and work toward a first export to the UAE."
       />
 
       <Section title="Your company">
@@ -117,23 +98,63 @@ export default async function OverviewPage() {
         </dl>
       </Section>
 
+      <section className="mt-8 rounded-md border bg-card" aria-labelledby="next-h">
+        <div className="border-b px-4 py-3 sm:px-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-primary">Where the value is</p>
+          <h2 id="next-h" className="text-lg font-semibold tracking-tight">
+            {found.profileTooThin ? "Describe your factory to unlock opportunities" : `${found.adjacent.length} products your factory could also make`}
+          </h2>
+        </div>
+        <div className="p-4 sm:p-5">
+          {found.profileTooThin ? (
+            <p className="text-sm text-muted-foreground">
+              Declare at least one manufacturing process on your factory profile. The platform then suggests finished products your machinery and materials could support, and helps you investigate each for the UAE.
+            </p>
+          ) : (
+            <>
+              <ul className="divide-y rounded-md border">
+                {top.map((m) => (
+                  <li key={m.entry.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{m.entry.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {FIT_LABEL[m.level]} · {m.score}/100
+                      </p>
+                    </div>
+                    <StatusBadge kind="inferred" />
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Inferred from {counts.processes} process{counts.processes === 1 ? "" : "es"}, {counts.machines} machine{counts.machines === 1 ? "" : "s"} and {counts.materials} material{counts.materials === 1 ? "" : "s"} you declared. Not confirmed demand.
+              </p>
+            </>
+          )}
+          <div className="mt-4">
+            <Button asChild size="lg" className="h-10">
+              <Link href={found.profileTooThin ? "/factories" : "/opportunities"}>{found.profileTooThin ? "Open my factories" : "See Export Opportunities"}</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <Section
         title="The export journey"
-        description="The intended sequence for the platform. The platform is under construction and none of these stages is available yet."
-        aside={<StatusBadge kind="planned" />}
+        description="From what your factory can make to a first export. Steps marked Preview show what they will do but are not working yet."
       >
         <ol className="divide-y rounded-md border bg-card">
           {journey.map((step, i) => (
             <li key={step.title} className="flex gap-4 px-4 py-3.5 sm:px-5">
-              <span className="w-5 shrink-0 pt-0.5 font-mono text-sm text-primary">
-                {i + 1}
-              </span>
-              <div className="min-w-0">
-                <h3 className="text-[15px] font-semibold">{step.title}</h3>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  {step.text}
-                </p>
+              <span className="w-5 shrink-0 pt-0.5 font-mono text-sm text-primary">{i + 1}</span>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[15px] font-semibold">
+                  <Link href={step.href} className="underline-offset-4 hover:underline">
+                    {step.title}
+                  </Link>
+                </h3>
+                <p className="mt-0.5 text-sm text-muted-foreground">{step.text}</p>
               </div>
+              {step.status === "preview" && <StatusBadge kind="planned" className="self-start" />}
             </li>
           ))}
         </ol>
@@ -150,7 +171,11 @@ export default async function OverviewPage() {
         <ul className="divide-y rounded-md border bg-card">
           {factories.map((f) => (
             <li key={f.id} className="px-4 py-3 sm:px-5">
-              <h3 className="break-words text-[15px] font-semibold">{f.name}</h3>
+              <h3 className="break-words text-[15px] font-semibold">
+                <Link href={`/factories/${f.id}`} className="underline-offset-4 hover:underline">
+                  {f.name}
+                </Link>
+              </h3>
               <p className="break-words text-sm text-muted-foreground">
                 {f.city}, {f.state}
               </p>
@@ -178,48 +203,6 @@ export default async function OverviewPage() {
         </dl>
       </Section>
 
-      <Section
-        title="Interface preview"
-        description="Static styling samples for forms and tables. Nothing here is functional and no values are real."
-        aside={<StatusBadge kind="demo" />}
-      >
-        <div className="grid gap-6 rounded-md border border-dashed border-input/60 p-4 sm:p-5">
-          <div className="grid max-w-sm gap-1.5">
-            <Label htmlFor="sample-field">Sample field</Label>
-            <Input
-              id="sample-field"
-              disabled
-              placeholder="Disabled design sample"
-            />
-            <p className="text-xs text-muted-foreground">
-              Help text appears here, below the field.
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Label</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {["Placeholder row A", "Placeholder row B"].map((row) => (
-                  <TableRow key={row}>
-                    <TableCell>{row}</TableCell>
-                    <TableCell className="text-muted-foreground">—</TableCell>
-                    <TableCell>
-                      <StatusBadge kind="demo" />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      </Section>
     </>
   );
 }

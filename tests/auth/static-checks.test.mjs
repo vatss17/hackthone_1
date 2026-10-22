@@ -159,9 +159,15 @@ describe("company registration (static)", () => {
 });
 
 describe("factory management (static)", () => {
-  it("the application never hard-deletes any record", () => {
-    const hits = sourceFiles.filter((f) => /\.delete\(/.test(read(f)));
-    assert.deepEqual(hits, []);
+  it("the application never hard-deletes an independent business record; only the approved link-style rows can be removed", () => {
+    // Link-style rows are owner-deletable and audited by design (M1.4B). Independent records
+    // (organizations, memberships, factories, machines, products, certifications) are archived instead.
+    const LINK_TABLES = ["factory_processes", "factory_materials", "product_specifications", "product_materials", "factory_products"];
+    const deletes = sourceFiles.flatMap((f) => [...read(f).matchAll(/\.from\(\s*["'](\w+)["']\s*\)\s*\.delete\(/g)].map((m) => ({ f, table: m[1] })));
+    assert.deepEqual(deletes.filter((d) => !LINK_TABLES.includes(d.table)), []);
+    // and no delete call hides from the check by being built another way
+    const allDeleteCalls = sourceFiles.reduce((n, f) => n + (read(f).match(/\.delete\(/g) ?? []).length, 0);
+    assert.equal(allDeleteCalls, deletes.length);
   });
 
   it("factory actions take the company from the server, never from the form", () => {

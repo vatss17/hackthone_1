@@ -52,7 +52,7 @@ export default async function FactoriesPage({ searchParams }: PageProps<"/factor
       <PageHeader
         eyebrow="My Factory"
         title="Factories"
-        description="The sites you export from. Register each factory here; machinery, materials and capacity come in a later step."
+        description="The sites you export from. Open a factory to describe its processes, capacity, machinery, materials and products."
         action={
           isOwner && (
             <Button asChild>
@@ -97,13 +97,20 @@ export default async function FactoriesPage({ searchParams }: PageProps<"/factor
                     <h3 className="break-words text-[15px] font-semibold">{f.name}</h3>
                     <Address f={f} />
                   </div>
-                  {isOwner && (
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/factories/${f.id}/edit`} aria-label={`Edit ${f.name}`}>
-                        Edit
+                  <div className="flex gap-2">
+                    <Button asChild size="sm">
+                      <Link href={`/factories/${f.id}`} aria-label={`Open profile of ${f.name}`}>
+                        Open profile
                       </Link>
                     </Button>
-                  )}
+                    {isOwner && (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/factories/${f.id}/edit`} aria-label={`Edit ${f.name}`}>
+                          Edit
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
