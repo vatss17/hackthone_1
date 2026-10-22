@@ -20,6 +20,8 @@
     "test:opportunities": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/opportunities/*.test.mjs",
     "test:landed-cost": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/landed-cost/*.test.mjs tests/compliance/*.test.mjs",
     "test:copilot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/catalogue/*.test.mjs tests/workspace/*.test.mjs",
+    "demo:preflight": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local scripts/demo-preflight.mjs",
+    "ai:readiness": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/ai-readiness.mjs",
     "test:intelligence": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/ai/*.test.mjs tests/evidence/*.test.mjs"
   },
   "dependencies": {

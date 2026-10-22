@@ -12,13 +12,27 @@ import { FIT_LABEL, discover } from "@/lib/opportunities/engine";
 type Step = { title: string; text: string; href: string; status: "available" | "preview" };
 
 const journey: Step[] = [
-  { title: "Map your factory and catalogue", text: "Declare processes, machinery and materials, and import your product catalogue with almost no typing.", href: "/products/import", status: "available" },
-  { title: "Find UAE opportunities", text: "See products you make and products your factory could also make, and explore each one.", href: "/opportunities", status: "available" },
-  { title: "Test commercial viability", text: "Estimate landed cost and margin with every assumption visible.", href: "/viability", status: "available" },
-  { title: "Qualify the product", text: "Work through first-pass screening questions on requirements and testing.", href: "/compliance", status: "available" },
-  { title: "Check trade benefits", text: "Work through CEPA origin and Indian export-scheme questions.", href: "/schemes", status: "available" },
-  { title: "Prepare documentation", text: "Draft invoice, packing list and a documentation checklist for you to review.", href: "/documentation", status: "available" },
-  { title: "Plan and request help", text: "A personalised roadmap, and expert briefs with your context filled in.", href: "/roadmap", status: "available" },
+  { title: "Import your catalogue", text: "Upload a CSV or paste text. The platform reads it and you review before anything is saved.", href: "/products/import", status: "available" },
+  { title: "Understand your factory", text: "Your processes, machinery and materials are what every suggestion is matched against.", href: "/factories", status: "available" },
+  { title: "Find adjacent export opportunities", text: "Products you make and products your factory could also make, each with the reasons why.", href: "/opportunities", status: "available" },
+  { title: "Check the evidence and uncertainties", text: "Reported UAE trade data where loaded, with its source, date and limits, and what is still unknown.", href: "/evidence", status: "available" },
+  { title: "Model landed-cost scenarios", text: "Landed cost and margin with every assumption visible and editable.", href: "/viability", status: "available" },
+  { title: "Screen compliance and incentives", text: "First-pass requirement, testing, CEPA and export-scheme questions. Nothing is marked verified.", href: "/compliance", status: "available" },
+  { title: "Follow a personalised roadmap", text: "Five phases, a next best action, and what blocks you.", href: "/roadmap", status: "available" },
+  { title: "Draft your documents", text: "Invoice, packing list and a checklist, marked as drafts for you to review.", href: "/documentation", status: "available" },
+  { title: "Ask for expert help", text: "A brief with your context filled in. No expert is connected yet.", href: "/services", status: "available" },
+];
+
+const demoPath: [string, string][] = [
+  ["Import a catalogue", "/products/import"],
+  ["See what the factory could also make", "/opportunities"],
+  ["Open a product: why it matches", "/opportunities"],
+  ["Evidence and its limits", "/evidence"],
+  ["Landed-cost scenarios", "/viability"],
+  ["Compliance and incentive screening", "/compliance"],
+  ["Roadmap and next best action", "/roadmap"],
+  ["Draft documents", "/documentation"],
+  ["Expert brief", "/services"],
 ];
 
 const labels: { kind: StatusKind; text: string }[] = [
@@ -74,29 +88,35 @@ export default async function OverviewPage() {
   const { input, counts } = await loadEngineInput(organization.id);
   const found = discover(input);
   const top = found.adjacent.slice(0, 3);
+  const isDemo = organization.name.startsWith("DEMO");
   return (
     <>
       <PageHeader
         eyebrow="Overview"
-        title={`Welcome, ${organization.name}`}
-        description="Make exporting effortless. Start from what your factory can make, find what it could make next, and work toward a first export to the UAE."
+        title="Make exporting effortless"
+        description={`${organization.name}: start from what your factory can make, see what it could make next, and get a clear, honest path to a first export to the UAE.`}
       />
 
-      <Section title="Your company">
-        <dl className="divide-y rounded-md border bg-card">
-          {[
-            ["Company name", organization.name],
-            ["Registered legal name", organization.legalName ?? "Not provided"],
-            ["Your role", organization.role === "owner" ? "Owner" : "Member"],
-            ["Registered", registeredOn.format(new Date(organization.createdAt))],
-          ].map(([label, value]) => (
-            <div key={label} className="grid gap-1 px-4 py-3 sm:grid-cols-[12rem_1fr] sm:gap-4 sm:px-5">
-              <dt className="text-sm text-muted-foreground">{label}</dt>
-              <dd className="min-w-0 break-words text-sm">{value}</dd>
-            </div>
-          ))}
-        </dl>
-      </Section>
+
+      {isDemo && (
+        <section className="mt-6 rounded-md border border-primary/40 bg-(--status-verified-bg) p-4 sm:p-5" aria-labelledby="demo-h">
+          <p className="text-xs font-medium uppercase tracking-wide text-primary">Demo guide · sample data</p>
+          <h2 id="demo-h" className="mt-0.5 text-lg font-semibold tracking-tight">
+            A five-minute path through the product
+          </h2>
+          <ol className="mt-3 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+            {demoPath.map(([label, href], i) => (
+              <li key={href} className="flex gap-2">
+                <span className="w-4 shrink-0 font-mono text-primary">{i + 1}</span>
+                <Link href={href} className="underline-offset-4 hover:underline">
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-3 text-xs text-muted-foreground">Everything here is synthetic sample data. Nothing is sent to any authority, and no figure is a quote or an approval.</p>
+        </section>
+      )}
 
       <section className="mt-8 rounded-md border bg-card" aria-labelledby="next-h">
         <div className="border-b px-4 py-3 sm:px-5">
@@ -197,6 +217,22 @@ export default async function OverviewPage() {
             </li>
           ))}
         </ul>
+      </Section>
+
+      <Section title="Your company">
+        <dl className="divide-y rounded-md border bg-card">
+          {[
+            ["Company name", organization.name],
+            ["Registered legal name", organization.legalName ?? "Not provided"],
+            ["Your role", organization.role === "owner" ? "Owner" : "Member"],
+            ["Registered", registeredOn.format(new Date(organization.createdAt))],
+          ].map(([label, value]) => (
+            <div key={label} className="grid gap-1 px-4 py-3 sm:grid-cols-[12rem_1fr] sm:gap-4 sm:px-5">
+              <dt className="text-sm text-muted-foreground">{label}</dt>
+              <dd className="min-w-0 break-words text-sm">{value}</dd>
+            </div>
+          ))}
+        </dl>
       </Section>
 
       <Section

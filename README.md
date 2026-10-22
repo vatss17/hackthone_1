@@ -45,6 +45,8 @@ npm run typecheck   # TypeScript, no emit
 npm run build       # production build
 npm run test:opportunities   # offline tests: matching engine, validation, navigation (no network)
 npm run test:intelligence    # offline tests: AI validation (mock provider), UAE trade evidence, explanations
+npm run ai:readiness         # what AI still needs (no network call, never prints secrets)
+npm run demo:preflight       # read-only demo checks (demo data, calculator, AI honesty, restricted data not exposed)
 npm run test:copilot         # offline tests: catalogue extraction, roadmap logic, document drafts, expert briefs
 npm run test:landed-cost     # offline tests: landed-cost maths, scenarios, saved assessments, screening content
 npm run start       # serve the production build
