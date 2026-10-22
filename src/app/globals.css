@@ -136,3 +136,49 @@
     @apply outline-2 outline-offset-2 outline-ring;
   }
 }
+
+/* ---------------------------------------------------------------------------------------------
+ * Printing the draft export documents. The app chrome and everything marked .no-print is hidden,
+ * and only the document chosen by the Print button (body[data-print]) is shown, on plain white
+ * with a repeating "DRAFT" line so no page can be mistaken for a final document.
+ * ------------------------------------------------------------------------------------------- */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 14mm 16mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+  }
+  .no-print {
+    display: none !important;
+  }
+  body[data-print="invoice"] .print-doc:not([data-doc="invoice"]),
+  body[data-print="packing"] .print-doc:not([data-doc="packing"]),
+  body[data-print="checklist"] .print-doc:not([data-doc="checklist"]) {
+    display: none !important;
+  }
+  .print-doc .doc-sheet {
+    overflow: visible !important;
+    border: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    color: #000 !important;
+  }
+  .print-doc .doc-sheet .draft-banner {
+    border-color: #000 !important;
+    color: #000 !important;
+  }
+  .print-doc .doc-sheet tr,
+  .print-doc .doc-sheet li {
+    break-inside: avoid;
+  }
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+}

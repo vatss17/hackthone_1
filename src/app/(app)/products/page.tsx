@@ -24,9 +24,14 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
         description="Your finished products. Each one can be explored for its UAE export potential."
         action={
           isOwner && (
-            <Button asChild>
-              <Link href="/products/new">Add product</Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild>
+                <Link href="/products/import">Import catalogue</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/products/new">Add one product</Link>
+              </Button>
+            </div>
           )
         }
       />
@@ -35,12 +40,17 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
         {products.length === 0 ? (
           <EmptyState
             title="No products yet"
-            description="Add at least one finished product so the platform can judge your export options."
+            description="Import a catalogue to start with almost no typing, or add one product by hand."
             action={
               isOwner && (
-                <Button asChild>
-                  <Link href="/products/new">Add a product</Link>
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild>
+                    <Link href="/products/import">Import a catalogue</Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href="/products/new">Add one product</Link>
+                  </Button>
+                </div>
               )
             }
           />

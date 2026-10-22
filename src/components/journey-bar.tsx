@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export type JourneyStep = "profile" | "opportunities" | "explore" | "cost" | "scenarios" | "feasibility" | "roadmap";
+export type JourneyStep = "workspace" | "profile" | "opportunities" | "explore" | "cost" | "scenarios" | "feasibility" | "roadmap" | "documents" | "expert";
 
 /**
  * The export journey as one strip, so every page in it shows where you are and lets you move on
@@ -11,13 +11,16 @@ export type JourneyStep = "profile" | "opportunities" | "explore" | "cost" | "sc
 export function JourneyBar({ current, reference }: { current: JourneyStep; reference: string | null }) {
   const q = reference && reference !== "standalone" ? reference : null;
   const steps: { id: JourneyStep; label: string; href: string }[] = [
-    { id: "profile", label: "Factory profile", href: "/factories" },
+    { id: "workspace", label: "Workspace", href: q ? `/workspace/${q}` : "/workspace" },
+    { id: "profile", label: "Catalogue", href: "/products" },
     { id: "opportunities", label: "Opportunities", href: "/opportunities" },
     { id: "explore", label: "Explore", href: q ? `/opportunities/${q}` : "/opportunities" },
     { id: "cost", label: "Landed cost", href: q ? `/viability?product=${q}#inputs` : "/viability#inputs" },
     { id: "scenarios", label: "Scenarios", href: q ? `/viability?product=${q}#scenarios` : "/viability#scenarios" },
     { id: "feasibility", label: "Feasibility", href: `/feasibility/${q ?? "standalone"}` },
     { id: "roadmap", label: "Roadmap", href: q ? `/roadmap?product=${q}` : "/roadmap" },
+    { id: "documents", label: "Documents", href: q ? `/documentation/${q}` : "/documentation" },
+    { id: "expert", label: "Expert help", href: q ? `/services?product=${q}` : "/services" },
   ];
   const at = steps.findIndex((s) => s.id === current);
   return (

@@ -11,10 +11,10 @@ import type { Inputs } from "@/lib/landed-cost/types";
  * the session and the interface says so.
  */
 
-const EVENT = "export-enablement:assessment-changed";
+export const EVENT = "export-enablement:assessment-changed";
 const memory = new Map<string, string>();
 
-function read(key: string): string | null {
+export function read(key: string): string | null {
   try {
     const v = window.localStorage.getItem(key);
     if (v !== null) return v;
@@ -24,7 +24,7 @@ function read(key: string): string | null {
   return memory.get(key) ?? null;
 }
 
-function write(key: string, value: string): boolean {
+export function write(key: string, value: string): boolean {
   memory.set(key, value);
   try {
     window.localStorage.setItem(key, value);
@@ -34,7 +34,7 @@ function write(key: string, value: string): boolean {
   }
 }
 
-function subscribe(cb: () => void) {
+export function subscribe(cb: () => void) {
   window.addEventListener("storage", cb);
   window.addEventListener(EVENT, cb);
   return () => {

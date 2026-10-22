@@ -1,5 +1,6 @@
 import { DEFAULT_SCENARIOS } from "./scenarios.ts";
 import type { CostLine, Inputs, LineKey, Scenario } from "./types.ts";
+import { DOC_KEYS, TASK_STATUSES, type ChecklistAnswer, type DocsState, type TaskState } from "../workspace/types.ts";
 
 /**
  * A saved local assessment: the calculator inputs, which fields the user has changed, the scenarios,
@@ -21,6 +22,10 @@ export interface Assessment {
   edited: string[];
   scenarios: Scenario[];
   checks: Record<string, boolean>;
+  /** Roadmap progress the person recorded by hand, by task id. */
+  tasks: Record<string, TaskState>;
+  /** Details typed into the export document drafts, and the checklist answers. */
+  docs: DocsState;
   updatedAt: string;
 }
 
@@ -95,6 +100,27 @@ function coerceScenarios(raw: unknown): Scenario[] {
   return [{ ...base }, ...withoutBase];
 }
 
+const ID = /^[a-z0-9._-]{1,80}$/i;
+
+function coerceTasks(raw: unknown): Record<string, TaskState> {
+  const out: Record<string, TaskState> = {};
+  if (!isObj(raw)) return out;
+  for (const [k, v] of Object.entries(raw).slice(0, 80)) {
+    if (!ID.test(k) || !isObj(v) || !TASK_STATUSES.includes(v.status as TaskState["status"])) continue;
+    out[k] = { status: v.status as TaskState["status"], note: text(v.note, "", 300), updatedAt: text(v.updatedAt, "", 40) };
+  }
+  return out;
+}
+
+function coerceDocs(raw: unknown): DocsState {
+  const r = isObj(raw) ? raw : {};
+  const details: DocsState["details"] = {};
+  if (isObj(r.details)) for (const k of DOC_KEYS) if (typeof r.details[k] === "string") details[k] = text(r.details[k], "", k.endsWith("Address") ? 400 : 200);
+  const checklist: Record<string, ChecklistAnswer> = {};
+  if (isObj(r.checklist)) for (const [k, v] of Object.entries(r.checklist).slice(0, 60)) if (ID.test(k) && (v === "have" || v === "need" || v === "na")) checklist[k] = v;
+  return { details, checklist };
+}
+
 export function parseAssessment(textValue: string, ref: string, defaults: Inputs): Assessment | null {
   let raw: unknown;
   try {
@@ -114,12 +140,14 @@ export function parseAssessment(textValue: string, ref: string, defaults: Inputs
     edited: Array.isArray(raw.edited) ? raw.edited.filter((e): e is string => typeof e === "string" && e.length < 60).slice(0, 80) : [],
     scenarios: coerceScenarios(raw.scenarios),
     checks,
+    tasks: coerceTasks(raw.tasks),
+    docs: coerceDocs(raw.docs),
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt.slice(0, 40) : new Date(0).toISOString(),
   };
 }
 
 export function newAssessment(ref: string, inputs: Inputs): Assessment {
-  return { v: ASSESSMENT_VERSION, ref, inputs, edited: [], scenarios: DEFAULT_SCENARIOS.map((s) => ({ ...s })), checks: {}, updatedAt: new Date().toISOString() };
+  return { v: ASSESSMENT_VERSION, ref, inputs, edited: [], scenarios: DEFAULT_SCENARIOS.map((s) => ({ ...s })), checks: {}, tasks: {}, docs: { details: {}, checklist: {} }, updatedAt: new Date().toISOString() };
 }
 
 /** Storage key. The company id keeps two companies on one browser apart. */

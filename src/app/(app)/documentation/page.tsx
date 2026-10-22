@@ -1,29 +1,42 @@
 import type { Metadata } from "next";
-import { FeaturePreview } from "@/components/preview/feature-preview";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+import { JourneyBar } from "@/components/journey-bar";
 import { requireOrganization } from "@/lib/organization";
+import { loadEngineInput } from "@/lib/capabilities";
+import { discover } from "@/lib/opportunities/engine";
 
-export const metadata: Metadata = { title: "Export Documents · Export Enablement Platform" };
+export const metadata: Metadata = { title: "Export documents · Export Enablement Platform" };
 export const instant = false;
 
-export default async function DocumentationPage() {
-  await requireOrganization();
+export default async function DocumentationIndexPage() {
+  const { organization } = await requireOrganization();
+  const { input } = await loadEngineInput(organization.id);
+  const d = discover(input);
   return (
-    <FeaturePreview
-      eyebrow="Export Documents"
-      title="Be ready with the right paperwork"
-      intro="This step will give you a personalised checklist of export documents, draft the commercial ones for you to review, and show what is still missing."
-      does={[
-        "Build a checklist from your product, buyer and route, with the reason each document is needed.",
-        "Draft commercial documents such as an invoice and packing list from your records, for a person to check and correct.",
-        "Track which documents you have, which are missing and which are expiring.",
-      ]}
-      needs={[
-        { label: "Product and packing data", kind: "missing", note: "Weights, cartons and descriptions from the product record." },
-        { label: "Buyer and shipment details", kind: "missing", note: "Entered by you when you prepare a shipment." },
-        { label: "Verified document requirements", kind: "missing", note: "Official sources not connected, so requirements are not stated yet." },
-      ]}
-      sources={["Verified export and import documentation requirements", "Private, access-controlled document storage", "Document reading to pre-fill details, always reviewed by a person"]}
-      next={{ href: "/roadmap", label: "See your readiness roadmap", note: "The roadmap shows how your profile progress leads to this step." }}
-    />
+    <>
+      <PageHeader eyebrow="Export documents" title="Which product are the documents for?" description="Draft a commercial invoice and packing list, and see a documentation checklist, for one product. Everything is a draft for you to review." />
+      <JourneyBar current="documents" reference={null} />
+      <section className="mt-8">
+        <h2 className="text-lg font-semibold tracking-tight">Your products</h2>
+        <ul className="mt-3 divide-y rounded-md border bg-card">
+          {d.yourProducts.length === 0 && <li className="px-4 py-3 text-sm text-muted-foreground">No products yet. Import a catalogue first.</li>}
+          {d.yourProducts.map((p) => (
+            <li key={p.product.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
+              <span className="text-sm font-medium">{p.product.name}</span>
+              <Button asChild size="sm">
+                <Link href={`/documentation/${p.product.id}`}>Open documents</Link>
+              </Button>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-sm">
+          <Link href="/documentation/standalone" className="font-medium text-primary underline-offset-4 hover:underline">
+            Draft documents for a standalone shipment
+          </Link>
+        </p>
+      </section>
+    </>
   );
 }

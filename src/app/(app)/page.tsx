@@ -12,13 +12,13 @@ import { FIT_LABEL, discover } from "@/lib/opportunities/engine";
 type Step = { title: string; text: string; href: string; status: "available" | "preview" };
 
 const journey: Step[] = [
-  { title: "Map your factory", text: "Declare processes, capacity, machinery, materials and products.", href: "/factories", status: "available" },
+  { title: "Map your factory and catalogue", text: "Declare processes, machinery and materials, and import your product catalogue with almost no typing.", href: "/products/import", status: "available" },
   { title: "Find UAE opportunities", text: "See products you make and products your factory could also make, and explore each one.", href: "/opportunities", status: "available" },
-  { title: "Test commercial viability", text: "Estimate landed cost and margin with every assumption visible.", href: "/viability", status: "preview" },
-  { title: "Qualify the product", text: "Screen requirements and find testing and certification gaps.", href: "/compliance", status: "preview" },
-  { title: "Check trade benefits", text: "Understand CEPA, rules of origin and Indian export incentives.", href: "/schemes", status: "preview" },
-  { title: "Prepare documentation", text: "A personalised checklist and drafts for you to review.", href: "/documentation", status: "preview" },
-  { title: "Plan and request help", text: "A prioritised roadmap, and requests to experts for what you cannot do alone.", href: "/roadmap", status: "preview" },
+  { title: "Test commercial viability", text: "Estimate landed cost and margin with every assumption visible.", href: "/viability", status: "available" },
+  { title: "Qualify the product", text: "Work through first-pass screening questions on requirements and testing.", href: "/compliance", status: "available" },
+  { title: "Check trade benefits", text: "Work through CEPA origin and Indian export-scheme questions.", href: "/schemes", status: "available" },
+  { title: "Prepare documentation", text: "Draft invoice, packing list and a documentation checklist for you to review.", href: "/documentation", status: "available" },
+  { title: "Plan and request help", text: "A personalised roadmap, and expert briefs with your context filled in.", href: "/roadmap", status: "available" },
 ];
 
 const labels: { kind: StatusKind; text: string }[] = [
@@ -135,6 +135,21 @@ export default async function OverviewPage() {
               <Link href={found.profileTooThin ? "/factories" : "/opportunities"}>{found.profileTooThin ? "Open my factories" : "See Export Opportunities"}</Link>
             </Button>
           </div>
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-md border bg-card p-4 sm:p-5" aria-labelledby="ws-h">
+        <h2 id="ws-h" className="text-lg font-semibold tracking-tight">
+          Your Export Workspace
+        </h2>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">The platform does the preparation: it reads your catalogue, finds what to export, works out the economics, lists what blocks you, drafts the documents and prepares your expert brief. Start with the next best action.</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button asChild size="lg" className="h-10">
+            <Link href="/workspace">Open my Export Workspace</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="h-10">
+            <Link href="/products/import">Import a product catalogue</Link>
+          </Button>
         </div>
       </section>
 

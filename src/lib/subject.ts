@@ -1,5 +1,5 @@
 import "server-only";
-import { getProductDetail } from "@/lib/capabilities";
+import { getProductDetail, type ProductDetail } from "@/lib/capabilities";
 import { CATALOGUE_BY_ID } from "@/lib/opportunities/catalogue";
 import { recognise } from "@/lib/opportunities/engine";
 import { isUuid } from "@/lib/factory-validation";
@@ -16,6 +16,8 @@ export type Subject = {
   hsCode: string | null;
   /** Packaging facts from the user's own product record. Empty for catalogue products. */
   facts: Partial<ProductFacts>;
+  /** The full record of the user's own product, for pages that need it. */
+  detail: ProductDetail | null;
 };
 
 /**
@@ -27,7 +29,7 @@ export async function resolveSubject(organizationId: string, raw: string | strin
   const ref = typeof raw === "string" ? raw : undefined;
   if (!ref) return null;
   const entry = CATALOGUE_BY_ID[ref];
-  if (entry) return { ref, name: entry.name, entry, own: false, hsClaimed: false, hsCode: null, facts: {} };
+  if (entry) return { ref, name: entry.name, entry, own: false, hsClaimed: false, hsCode: null, facts: {}, detail: null };
   if (!isUuid(ref)) return null;
   const p = await getProductDetail(organizationId, ref);
   if (!p) return null;
@@ -38,6 +40,7 @@ export async function resolveSubject(organizationId: string, raw: string | strin
     own: true,
     hsClaimed: !!p.hsCodeClaimed,
     hsCode: p.hsCodeClaimed,
+    detail: p,
     facts: {
       label: p.name,
       unitsPerCarton: p.unitsPerCarton,

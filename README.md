@@ -2,7 +2,7 @@
 
 Working title. An export enablement platform for Indian manufacturers (initial focus: finished plastic products to the UAE).
 
-**Status: Demo Sprint 2, the Export Feasibility Engine (not yet committed). Sprint 1 is committed as `21d42c6`.** Working: sign-in, company and factory registration, a manufacturing profile (processes, capacity, machinery, materials, products with specifications and factory association), **Export Opportunities** with a transparent rules-based Capability-to-Opportunity engine, a product exploration page, and from Sprint 2 a **landed-cost calculator with scenario comparison**, an **export feasibility workspace** and **first-pass compliance and CEPA screening**. Export documents, the wider roadmap and expert assistance are honest **previews**. UAE demand, tariffs, freight, exchange rates and regulations are **not connected**: calculator starting values are samples, and anything illustrative is labelled. See `docs/post-demo-roadmap.md` for what remains.
+**Status: Demo Sprint 3, the Effortless Export Copilot (not yet committed). Sprint 1 is `21d42c6`, Sprint 2 is `2a6d205`.** Working: sign-in, company and factory registration, a manufacturing profile (processes, capacity, machinery, materials, products with specifications and factory association), **Export Opportunities** with a transparent rules-based Capability-to-Opportunity engine, a product exploration page, and from Sprint 2 a **landed-cost calculator with scenario comparison**, an **export feasibility workspace** and **first-pass compliance and CEPA screening**. From Sprint 3: **catalogue import** (CSV, text, PDF text, read in the browser by rules, reviewed before saving), a **personalised export roadmap**, **draft invoice and packing list** with browser print, **expert briefs** with context filled in (no expert is connected), and an **Export Workspace** that shows the next best action. UAE demand, tariffs, freight, exchange rates and regulations are **not connected**: calculator starting values are samples, and anything illustrative is labelled. See `docs/post-demo-roadmap.md` for what remains.
 
 ## Run the demo
 
@@ -44,6 +44,7 @@ npm run lint        # ESLint
 npm run typecheck   # TypeScript, no emit
 npm run build       # production build
 npm run test:opportunities   # offline tests: matching engine, validation, navigation (no network)
+npm run test:copilot         # offline tests: catalogue extraction, roadmap logic, document drafts, expert briefs
 npm run test:landed-cost     # offline tests: landed-cost maths, scenarios, saved assessments, screening content
 npm run start       # serve the production build
 ```

@@ -180,6 +180,7 @@ export type ProductDetail = {
   cartonLengthMm: number | null;
   cartonWidthMm: number | null;
   cartonHeightMm: number | null;
+  materials: string[];
   specs: { id: string; name: string; value: string; unit: string | null }[];
   factories: { linkId: string; factoryId: string; name: string }[];
 };
@@ -195,11 +196,12 @@ export async function getProductDetail(organizationId: string, id: string): Prom
     .maybeSingle();
   if (error) throw new Error("Could not load the product.");
   if (!data) return null;
-  const [specs, links] = await Promise.all([
+  const [specs, links, mats] = await Promise.all([
     supabase.from("product_specifications").select("id, name, value_text, value_number, unit").eq("organization_id", organizationId).eq("product_id", id).order("created_at"),
     supabase.from("factory_products").select("id, factory_id, factory:factories(name, archived_at)").eq("organization_id", organizationId).eq("product_id", id),
+    supabase.from("product_materials").select("custom_name, ref:ref_materials(code)").eq("organization_id", organizationId).eq("product_id", id).order("created_at"),
   ]);
-  if (specs.error || links.error) throw new Error("Could not load the product.");
+  if (specs.error || links.error || mats.error) throw new Error("Could not load the product.");
   const d = data as Record<string, string | number | null>;
   return {
     id: d.id as string,
@@ -215,6 +217,7 @@ export async function getProductDetail(organizationId: string, id: string): Prom
     cartonLengthMm: d.carton_length_mm === null ? null : Number(d.carton_length_mm),
     cartonWidthMm: d.carton_width_mm === null ? null : Number(d.carton_width_mm),
     cartonHeightMm: d.carton_height_mm === null ? null : Number(d.carton_height_mm),
+    materials: (mats.data as unknown as { custom_name: string | null; ref: Embedded<{ code: string }> }[]).map((m) => one(m.ref)?.code ?? m.custom_name ?? "").filter(Boolean),
     specs: (specs.data as unknown as { id: string; name: string; value_text: string | null; value_number: string | number | null; unit: string | null }[]).map((s) => ({
       id: s.id,
       name: s.name,

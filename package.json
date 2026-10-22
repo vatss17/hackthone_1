@@ -18,7 +18,8 @@
     "demo:destroy": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local scripts/demo-scenario.mjs destroy",
     "demo:status": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local scripts/demo-scenario.mjs status",
     "test:opportunities": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/opportunities/*.test.mjs",
-    "test:landed-cost": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/landed-cost/*.test.mjs tests/compliance/*.test.mjs"
+    "test:landed-cost": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/landed-cost/*.test.mjs tests/compliance/*.test.mjs",
+    "test:copilot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/catalogue/*.test.mjs tests/workspace/*.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -30,7 +31,8 @@
     "radix-ui": "^1.8.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "tailwind-merge": "^3.7.0"
+    "tailwind-merge": "^3.7.0",
+    "unpdf": "^1.9.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

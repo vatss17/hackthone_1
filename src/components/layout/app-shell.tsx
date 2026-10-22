@@ -15,7 +15,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
+    <div className="min-h-screen lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] print:block">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
@@ -23,7 +23,7 @@ export function AppShell({
         Skip to content
       </a>
 
-      <aside className="hidden border-r bg-sidebar lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+      <aside className="hidden border-r bg-sidebar print:!hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
         <div className="flex h-14 items-center border-b px-5">
           <Brand />
         </div>
@@ -33,7 +33,7 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3 print:hidden sm:px-6 lg:px-8">
           <MobileNav />
           <div className="min-w-0 truncate text-sm font-semibold lg:hidden">
             Export Enablement Platform
@@ -52,7 +52,7 @@ export function AppShell({
         </header>
 
         {isDemo && (
-          <div role="note" className="border-b border-dashed border-amber/60 bg-(--status-estimate-bg) px-4 py-1.5 text-center text-xs font-medium text-(--status-estimate-fg) sm:px-6">
+          <div role="note" className="print:hidden border-b border-dashed border-amber/60 bg-(--status-estimate-bg) px-4 py-1.5 text-center text-xs font-medium text-(--status-estimate-fg) sm:px-6">
             Demo scenario: every company, factory and product here is sample data, not a real manufacturer.
           </div>
         )}
