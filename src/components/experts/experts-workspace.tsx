@@ -1,25 +1,22 @@
 "use client";
 
+import { VoiceAssist } from "@/components/ai-input/voice-assist";
+import { LoadingBlock } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { EVENT, read, subscribe, write } from "@/components/landed-cost/use-assessment";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { T, useT } from "@/lib/i18n/client";
 import { Notice } from "@/components/auth/notice";
 import { StatusBadge } from "@/components/status-badge";
 import { useWorkspace } from "@/components/workspace/use-workspace";
-import { LOCAL_NOTICE, STATUS_LABEL, TOPICS, TOPIC_BY_ID, composeBrief } from "@/lib/experts/brief";
+import { LOCAL_NOTICE, STATUS_LABEL, TOPICS, TOPIC_BY_ID, composeBrief, draftKey } from "@/lib/experts/brief";
+import { REQUEST_NEXT } from "@/lib/workspace/labels";
 import { familyById, itemsFor } from "@/lib/compliance/content";
 import type { ExpertRequest, RequestStatus, RequestTopic, WorkspaceFacts } from "@/lib/workspace/types";
 import type { Inputs } from "@/lib/landed-cost/types";
 import { cn } from "@/lib/utils";
-
-const NEXT: Record<RequestStatus, { to: RequestStatus; label: string } | null> = {
-  draft: { to: "ready", label: "Mark ready to share" },
-  ready: { to: "sent", label: "I shared it" },
-  sent: { to: "answered", label: "Record an answer" },
-  answered: { to: "closed", label: "Close" },
-  closed: null,
-};
 
 const newId = () => `req-${(globalThis.crypto?.randomUUID?.() ?? `${Date.now()}${Math.random()}`).replace(/[^a-z0-9]/gi, "").slice(0, 14)}`;
 
@@ -36,10 +33,26 @@ export function ExpertsWorkspace({
   initialTopic: RequestTopic;
   products: { ref: string; name: string }[];
 }) {
+  const t = useT();
   const router = useRouter();
   const w = useWorkspace({ scope, facts, defaults });
   const [topic, setTopic] = useState<RequestTopic>(initialTopic);
-  const [edited, setEdited] = useState<string | null>(null);
+  const key = draftKey(scope, facts.standalone ? null : facts.ref, topic);
+  // Edits are kept per company, product and topic in this browser, so switching topic, switching product or reloading never discards them.
+  const savedDraft = useSyncExternalStore(subscribe, () => read(key), () => null);
+  const edited = savedDraft;
+  const setEdited = useCallback(
+    (v: string | null) => {
+      try {
+        if (v === null) window.localStorage.removeItem(key);
+        else write(key, v);
+      } catch {
+        if (v !== null) write(key, v);
+      }
+      window.dispatchEvent(new Event(EVENT));
+    },
+    [key],
+  );
   const [shareOk, setShareOk] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
@@ -72,19 +85,19 @@ export function ExpertsWorkspace({
       createdAt: now,
       updatedAt: now,
     };
-    w.saveRequests([r, ...w.requests]);
+    w.mutateRequests((cur) => [r, ...cur]);
     setEdited(null);
-    setMessage({ tone: "success", text: "Brief saved in this browser. Nothing has been sent to anyone." });
+    setMessage({ tone: "success", text: t("Brief saved in this browser. Nothing has been sent to anyone.") });
   };
 
-  const patchRequest = (id: string, p: Partial<ExpertRequest>) => w.saveRequests(w.requests.map((r) => (r.id === id ? { ...r, ...p, updatedAt: new Date().toISOString() } : r)));
+  const patchRequest = (id: string, p: Partial<ExpertRequest>) => w.mutateRequests((cur) => cur.map((r) => (r.id === id ? { ...r, ...p, updatedAt: new Date().toISOString() } : r)));
 
   const copy = async (s: string) => {
     try {
       await navigator.clipboard.writeText(s);
-      setMessage({ tone: "success", text: "Copied. Paste it into an email or message to an expert you choose." });
+      setMessage({ tone: "success", text: t("Copied. Paste it into an email or message to an expert you choose.") });
     } catch {
-      setMessage({ tone: "error", text: "Copying was blocked by the browser. Use Download instead." });
+      setMessage({ tone: "error", text: t("Copying was blocked by the browser. Use Download instead.") });
     }
   };
   const download = (name: string, s: string) => {
@@ -96,27 +109,27 @@ export function ExpertsWorkspace({
     URL.revokeObjectURL(url);
   };
 
-  if (!w.hydrated) return <p className="mt-8 text-sm text-muted-foreground">Loading…</p>;
+  if (!w.hydrated) return <LoadingBlock label={t("Loading…")} />;
 
   return (
     <div className="mt-6 space-y-10">
-      <div className="rounded-md border border-(--status-estimate-border) bg-(--status-estimate-bg) px-4 py-3 text-sm text-(--status-estimate-fg) sm:px-5">
-        <p className="font-medium">No expert is connected yet.</p>
-        <p className="mt-0.5">This page prepares a brief with your context filled in. {LOCAL_NOTICE}</p>
+      <div className="rounded-lg border border-(--status-estimate-border) bg-(--status-estimate-bg) px-4 py-3 text-sm text-(--status-estimate-fg) sm:px-5">
+        <p className="font-medium">{t("No expert is connected yet.")}</p>
+        <p className="mt-0.5">{t("This page prepares a brief with your context filled in.")} {t(LOCAL_NOTICE)}</p>
       </div>
 
       <section aria-labelledby="t-h">
         <h2 id="t-h" className="text-lg font-semibold tracking-tight">
-          1. What do you need help with?
+          {t("1. What do you need help with?")}
         </h2>
         <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {TOPICS.map((t) => (
-            <li key={t.id}>
-              <label className={cn("flex h-full cursor-pointer gap-3 rounded-md border bg-card p-3.5 text-sm transition-colors", topic === t.id ? "border-primary ring-1 ring-primary" : "hover:bg-muted/50")}>
-                <input type="radio" name="topic" className="mt-1 size-4 accent-primary" checked={topic === t.id} onChange={() => { setTopic(t.id); setEdited(null); }} />
+          {TOPICS.map((tp) => (
+            <li key={tp.id}>
+              <label className={cn("flex h-full cursor-pointer gap-3 rounded-lg border bg-card p-3.5 text-sm transition-colors", topic === tp.id ? "border-primary ring-1 ring-primary" : "hover:bg-muted/50")}>
+                <input type="radio" name="topic" className="mt-1 size-4 accent-primary" checked={topic === tp.id} onChange={() => setTopic(tp.id)} />
                 <span>
-                  <span className="block font-semibold">{t.label}</span>
-                  <span className="mt-0.5 block text-muted-foreground">{t.blurb}</span>
+                  <span className="block font-semibold">{t(tp.label)}</span>
+                  <span className="mt-0.5 block text-muted-foreground">{t(tp.blurb)}</span>
                 </span>
               </label>
             </li>
@@ -128,16 +141,16 @@ export function ExpertsWorkspace({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 id="b-h" className="text-lg font-semibold tracking-tight">
-              2. Review the brief
+              {t("2. Review the brief")}
             </h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Built from your factory profile, product record, landed-cost assessment and open screening questions. Edit anything before you use it.</p>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t("Built from your factory profile, product record, landed-cost assessment and open screening questions. Edit anything before you use it.")}</p>
           </div>
-          <div className="grid gap-1">
+          <div className="grid w-full min-w-0 gap-1 sm:w-auto">
             <Label htmlFor="brief-product" className="text-xs">
-              About
+              {t("About")}
             </Label>
-            <select id="brief-product" value={facts.standalone ? "" : facts.ref} onChange={(e) => goProduct(e.target.value)} className="h-9 rounded-md border border-input bg-card px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30">
-              <option value="">A general question (no product)</option>
+            <select id="brief-product" value={facts.standalone ? "" : facts.ref} onChange={(e) => goProduct(e.target.value)} className="h-11 w-full min-w-0 max-w-full rounded-md border border-input bg-card px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 sm:w-auto sm:max-w-xs md:h-10">
+              <option value="">{t("A general question (no product)")}</option>
               {products.map((p) => (
                 <option key={p.ref} value={p.ref}>
                   {p.name}
@@ -147,42 +160,59 @@ export function ExpertsWorkspace({
           </div>
         </div>
         <label htmlFor="brief" className="sr-only">
-          Expert brief
+          {t("Expert brief")}
         </label>
+        <VoiceAssist target="text" fieldId="brief" className="mt-3" />
         <textarea
           id="brief"
           value={text}
           onChange={(e) => setEdited(e.target.value)}
           maxLength={8000}
-          className="mt-3 min-h-96 w-full rounded-md border border-input bg-card px-3 py-2 font-mono text-[13px] leading-5 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+          className="mt-3 min-h-96 w-full rounded-lg border border-input bg-card px-3 py-2.5 font-mono text-[13px] leading-5 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
         />
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <StatusBadge kind="inferred" />
-          <span>Assembled by rules from your own records. {edited !== null ? "You have edited it." : ""}</span>
+          <span>{t("Assembled by rules from your own records.")} {edited !== null ? t("You have edited it. Your edit is kept for this product and topic in this browser until you save the request or rebuild it.") : ""}</span>
           {edited !== null && (
             <Button type="button" variant="ghost" size="sm" onClick={() => setEdited(null)}>
-              Rebuild from my data
+              {t("Rebuild from my data")}
             </Button>
           )}
         </div>
 
-        <label className="mt-4 flex items-start gap-2 text-sm">
-          <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={shareOk} onChange={(e) => setShareOk(e.target.checked)} />
-          <span>I understand this brief contains my business information and that I will decide who receives it. The platform does not send it.</span>
-        </label>
-        <div className="mt-3 flex flex-wrap gap-3">
-          <Button type="button" disabled={!shareOk} onClick={() => copy(text)}>
-            Copy the brief
-          </Button>
-          <Button type="button" variant="outline" disabled={!shareOk} onClick={() => download(composed.title, text)}>
-            Download as text
-          </Button>
-          <Button type="button" variant="outline" onClick={() => save("draft")}>
-            Save as a draft request
-          </Button>
-          <Button type="button" variant="outline" onClick={() => save("ready")}>
-            Save as ready to share
-          </Button>
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border bg-card p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              {t("Keep it here")} <StatusBadge kind="local" />
+            </h3>
+            <p className="mt-1 text-[13px] text-muted-foreground">{t("Saves the request in this browser so you can come back to it. Nothing is sent to anyone.")}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={() => save("draft")}>
+                <T>Save as a draft request</T>
+              </Button>
+              <Button type="button" variant="outline" onClick={() => save("ready")}>
+                <T>Save as ready to share</T>
+              </Button>
+            </div>
+          </div>
+          <div className="rounded-lg border bg-card p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              {t("Share it yourself")} <StatusBadge kind="manual" />
+            </h3>
+            <p className="mt-1 text-[13px] text-muted-foreground">{t("You copy or download the text and send it to an expert you choose. No expert is connected and the platform sends nothing.")}</p>
+            <label className="mt-3 flex items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={shareOk} onChange={(e) => setShareOk(e.target.checked)} />
+              <span>{t("I understand this brief contains my business information and that I will decide who receives it.")}</span>
+            </label>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" disabled={!shareOk} onClick={() => copy(text)}>
+                <T>Copy the brief</T>
+              </Button>
+              <Button type="button" variant="outline" disabled={!shareOk} onClick={() => download(composed.title, text)}>
+                <T>Download as text</T>
+              </Button>
+            </div>
+          </div>
         </div>
         {message && (
           <div className="mt-3">
@@ -194,61 +224,62 @@ export function ExpertsWorkspace({
       <section aria-labelledby="r-h">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="r-h" className="text-lg font-semibold tracking-tight">
-            3. Your requests
+            {t("3. Your requests")}
           </h2>
-          <StatusBadge kind="user" />
+          <StatusBadge kind="local" />
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">You keep the status by hand: the platform cannot see whether you sent a brief or what came back.</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("You keep the status by hand: the platform cannot see whether you sent a brief or what came back.")}</p>
         {w.requests.length === 0 ? (
-          <p className="mt-3 rounded-md border border-dashed border-input/60 bg-card px-4 py-5 text-sm text-muted-foreground">No requests yet. Save a brief above to start one.</p>
+          <p className="mt-3 rounded-md border border-dashed border-input/60 bg-card px-4 py-5 text-sm text-muted-foreground">{t("No requests yet. Save a brief above to start one.")}</p>
         ) : (
-          <ul className="mt-3 divide-y rounded-md border bg-card">
+          <ul className="mt-3 divide-y rounded-lg border bg-card">
             {w.requests.map((r) => {
-              const step = NEXT[r.status];
+              const step = REQUEST_NEXT[r.status];
               return (
                 <li key={r.id} className="px-4 py-4 sm:px-5">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h3 className="break-words text-[15px] font-semibold">{r.title}</h3>
                       <p className="text-xs text-muted-foreground">
-                        {TOPIC_BY_ID[r.topic].label} · saved {r.createdAt.slice(0, 10)}
+                        {t("{topic} · saved {date}", { topic: t(TOPIC_BY_ID[r.topic].label), date: r.createdAt.slice(0, 10) })}
                       </p>
                     </div>
-                    <span className="inline-flex h-5 items-center rounded-sm border border-(--status-ai-border) bg-(--status-ai-bg) px-1.5 text-xs font-medium text-(--status-ai-fg)">{STATUS_LABEL[r.status]}</span>
+                    <span className="inline-flex h-5 items-center rounded-sm border border-(--status-ai-border) bg-(--status-ai-bg) px-1.5 text-xs font-medium text-(--status-ai-fg)">{t(STATUS_LABEL[r.status])}</span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {step && (
                       <Button type="button" size="sm" onClick={() => patchRequest(r.id, { status: step.to })}>
-                        {step.label}
+                        {t(step.label)}
                       </Button>
                     )}
                     <Button type="button" size="sm" variant="outline" disabled={!shareOk} onClick={() => copy(r.summary)}>
-                      Copy
+                      <T>Copy</T>
                     </Button>
                     <Button type="button" size="sm" variant="outline" disabled={!shareOk} onClick={() => download(r.title, r.summary)}>
-                      Download
+                      <T>Download</T>
                     </Button>
-                    <Button type="button" size="sm" variant="ghost" onClick={() => window.confirm("Delete this saved request from this browser?") && w.saveRequests(w.requests.filter((x) => x.id !== r.id))}>
-                      Delete
+                    <Button type="button" size="sm" variant="ghost" onClick={() => window.confirm(t("Delete this saved request from this browser?")) && w.mutateRequests((cur) => cur.filter((x) => x.id !== r.id))}>
+                      <T>Delete</T>
                     </Button>
                   </div>
                   {(r.status === "answered" || r.status === "closed" || r.reply) && (
                     <div className="mt-3 grid gap-1">
                       <Label htmlFor={`reply-${r.id}`} className="text-xs">
-                        The answer you received (typed by you)
+                        {t("The answer you received (typed by you)")}
                       </Label>
+                      <VoiceAssist target="text" fieldId={`reply-${r.id}`} compact />
                       <textarea
                         id={`reply-${r.id}`}
-                        defaultValue={r.reply}
+                        value={r.reply}
                         maxLength={4000}
-                        onBlur={(e) => e.target.value !== r.reply && patchRequest(r.id, { reply: e.target.value })}
+                        onChange={(e) => patchRequest(r.id, { reply: e.target.value })}
                         className="min-h-20 w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
                       />
-                      <p className="text-xs text-muted-foreground">Recorded by you. It is not verified by the platform and is not an approval.</p>
+                      <p className="text-xs text-muted-foreground">{t("Recorded by you. It is not verified by the platform and is not an approval.")}</p>
                     </div>
                   )}
                   <details className="mt-2">
-                    <summary className="cursor-pointer text-xs text-muted-foreground">Show the brief</summary>
+                    <summary className="cursor-pointer text-xs text-muted-foreground">{t("Show the brief")}</summary>
                     <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-xs leading-5">{r.summary}</pre>
                   </details>
                 </li>

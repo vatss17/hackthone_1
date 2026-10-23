@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useT } from "@/lib/i18n/client";
 
 type FieldProps = Omit<React.ComponentProps<"input">, "id" | "name"> & {
   name: string;
@@ -13,6 +14,7 @@ type FieldProps = Omit<React.ComponentProps<"input">, "id" | "name"> & {
 
 /** Label, input, optional hint and an accessible error message. */
 export function TextField({ name, label, error, hint, className, ...props }: FieldProps) {
+  const t = useT();
   // The hint is only rendered while there is no error, so only then may it be referenced.
   const hintId = hint && !error ? `${name}-hint` : undefined;
   const errorId = error ? `${name}-error` : undefined;
@@ -34,7 +36,7 @@ export function TextField({ name, label, error, hint, className, ...props }: Fie
       )}
       {error && (
         <p id={errorId} className="text-xs font-medium text-destructive">
-          {error}
+          {t(error)}
         </p>
       )}
     </div>
@@ -43,6 +45,7 @@ export function TextField({ name, label, error, hint, className, ...props }: Fie
 
 /** Password input with a working show / hide control. */
 export function PasswordField({ name, label, error, hint, ...props }: FieldProps) {
+  const t = useT();
   const [visible, setVisible] = useState(false);
   // The hint is only rendered while there is no error, so only then may it be referenced.
   const hintId = hint && !error ? `${name}-hint` : undefined;
@@ -66,10 +69,10 @@ export function PasswordField({ name, label, error, hint, ...props }: FieldProps
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-pressed={visible}
-          aria-label={visible ? "Hide password" : "Show password"}
+          aria-label={visible ? t("Hide password") : t("Show password")}
           className="absolute inset-y-0 right-0 flex items-center rounded-r-md px-3 text-xs font-medium text-primary hover:text-foreground"
         >
-          {visible ? "Hide" : "Show"}
+          {visible ? t("Hide") : t("Show")}
         </button>
       </div>
       {hint && !error && (
@@ -79,7 +82,7 @@ export function PasswordField({ name, label, error, hint, ...props }: FieldProps
       )}
       {error && (
         <p id={errorId} className="text-xs font-medium text-destructive">
-          {error}
+          {t(error)}
         </p>
       )}
     </div>
@@ -97,6 +100,7 @@ type SelectFieldProps = Omit<React.ComponentProps<"select">, "id" | "name"> & {
 
 /** Native select (works everywhere, including mobile pickers) styled like the text inputs. */
 export function SelectField({ name, label, options, placeholder, error, hint, className, ...props }: SelectFieldProps) {
+  const t = useT();
   const hintId = hint && !error ? `${name}-hint` : undefined;
   const errorId = error ? `${name}-error` : undefined;
   return (
@@ -108,7 +112,7 @@ export function SelectField({ name, label, options, placeholder, error, hint, cl
         aria-invalid={error ? true : undefined}
         aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
         className={
-          "h-10 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:h-9 md:text-sm " +
+          "h-11 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:h-10 md:text-sm " +
           (className ?? "")
         }
         {...props}
@@ -116,7 +120,7 @@ export function SelectField({ name, label, options, placeholder, error, hint, cl
         <option value="">{placeholder}</option>
         {options.map((o) => (
           <option key={o} value={o}>
-            {o}
+            {t(o)}
           </option>
         ))}
       </select>
@@ -127,7 +131,7 @@ export function SelectField({ name, label, options, placeholder, error, hint, cl
       )}
       {error && (
         <p id={errorId} className="text-xs font-medium text-destructive">
-          {error}
+          {t(error)}
         </p>
       )}
     </div>

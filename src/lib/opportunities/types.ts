@@ -60,9 +60,11 @@ export interface CatalogueEntry {
   sizeClass: SizeClass;
   /** Tools, moulds, dies and equipment this product would typically need. */
   tooling: string[];
+  /** Materials or parts a maker would normally BUY IN rather than make (for example plastic sheet). Not a missing capability. */
+  purchasedInputs?: string[];
   /** Tests and validations a producer would typically need to plan for. */
   validations: string[];
-  /** Hypotheses for why the UAE is worth investigating. Not data. */
+  /** Hypotheses for why the destination market is worth investigating. Not data. */
   whyUae: string[];
   /** Illustrative placeholder, never a measurement. */
   demandSignal: "broad" | "moderate" | "niche";
@@ -112,8 +114,20 @@ export interface MatchResult {
   matchedMaterials: MaterialCode[];
   /** Largest declared clamp force among relevant machines (tonnes), or null. */
   largestClampTonnes: number | null;
-  /** What would have to be added or checked, derived from the gaps above plus the catalogue. */
+  /** What would have to be added or checked. Only things that matter: a required process, a missing machine, a usual material, capacity, ratings. */
   gaps: string[];
+  /** Optional extras and alternatives. Never a reason a product is not makeable: an optional process, alternative grades, mould-size checks. */
+  optional: string[];
+  /** The same facts, structured, so the interface never says a process is both declared and missing. */
+  guidance: {
+    requiredProcesses: { code: ProcessCode; declared: boolean; machineListed: boolean }[];
+    optionalProcesses: { code: ProcessCode; declared: boolean }[];
+    purchasedInputs: string[];
+    /** Required processes that ARE declared but have no machine listed. */
+    missingMachinery: ProcessCode[];
+    /** Other usual grades that are not declared. Optional. */
+    alternativeMaterials: MaterialCode[];
+  };
   /** Confidence in the capability fit only. Never "high": there is no market or regulatory evidence. */
   confidence: { level: "medium" | "low"; why: string };
 }

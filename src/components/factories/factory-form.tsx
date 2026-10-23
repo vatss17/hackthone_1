@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import { useT } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/auth/notice";
 import { SelectField, TextField } from "@/components/auth/fields";
@@ -27,6 +28,7 @@ export function FactoryForm({
   pendingLabel: string;
   cancelHref: string;
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState<FactoryFormState, FormData>(action, {});
   const alertRef = useFocusOnError(state, ORDER);
   const v = state.values ?? initial;
@@ -37,75 +39,75 @@ export function FactoryForm({
       {id && <input type="hidden" name="id" value={id} />}
       {state.error && (
         <div ref={alertRef} tabIndex={-1} className="outline-none">
-          <Notice tone="error">{state.error}</Notice>
+          <Notice tone="error">{t(state.error)}</Notice>
         </div>
       )}
 
       <TextField
         name="factoryName"
-        label="Factory name"
+        label={t("Factory name")}
         autoComplete="off"
         maxLength={FACTORY_NAME_MAX + 50}
         defaultValue={v?.factoryName}
-        hint="How you refer to this site, for example the plant or unit name."
-        error={e.factoryName}
+        hint={t("How you refer to this site, for example the plant or unit name.")}
+        error={e.factoryName ? t(e.factoryName) : undefined}
         required
       />
       <TextField
         name="addressLine1"
-        label="Address line 1"
+        label={t("Address line 1")}
         autoComplete="off"
         maxLength={ADDRESS_MAX + 50}
         defaultValue={v?.addressLine1}
-        error={e.addressLine1}
+        error={e.addressLine1 ? t(e.addressLine1) : undefined}
         required
       />
       <TextField
         name="addressLine2"
-        label="Address line 2 (optional)"
+        label={t("Address line 2 (optional)")}
         autoComplete="off"
         maxLength={ADDRESS_MAX + 50}
         defaultValue={v?.addressLine2}
-        error={e.addressLine2}
+        error={e.addressLine2 ? t(e.addressLine2) : undefined}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField
           name="city"
-          label="City"
+          label={t("City")}
           autoComplete="off"
           maxLength={CITY_MAX + 50}
           defaultValue={v?.city}
-          error={e.city}
+          error={e.city ? t(e.city) : undefined}
           required
         />
         <SelectField
           name="state"
-          label="State or union territory"
+          label={t("State or union territory")}
           options={INDIAN_STATES}
-          placeholder="Choose…"
+          placeholder={t("Choose…")}
           defaultValue={v?.state ?? ""}
-          error={e.state}
+          error={e.state ? t(e.state) : undefined}
           required
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField
           name="postalCode"
-          label="PIN code"
+          label={t("PIN code")}
           inputMode="numeric"
           autoComplete="off"
           maxLength={12}
           defaultValue={v?.postalCode}
-          hint="6 digits."
-          error={e.postalCode}
+          hint={t("6 digits.")}
+          error={e.postalCode ? t(e.postalCode) : undefined}
           required
         />
         <div className="grid gap-1.5">
-          <span className="text-sm font-medium leading-none">Country</span>
-          <div className="flex h-10 items-center rounded-md border border-border bg-muted px-3 text-base text-muted-foreground md:h-9 md:text-sm">
-            India
+          <span className="text-sm font-medium leading-none">{t("Country")}</span>
+          <div className="flex h-11 items-center rounded-md border border-border bg-muted px-3 text-base text-muted-foreground md:h-10 md:text-sm">
+            {t("India")}
           </div>
-          <p className="text-xs text-muted-foreground">Fixed for now: the platform supports Indian factories only.</p>
+          <p className="text-xs text-muted-foreground">{t("Fixed for now: the platform supports Indian factories only.")}</p>
         </div>
       </div>
 
@@ -114,7 +116,7 @@ export function FactoryForm({
           {pending ? pendingLabel : submitLabel}
         </Button>
         <Button asChild variant="outline" size="lg" className="h-11 sm:h-9">
-          <Link href={cancelHref}>Cancel</Link>
+          <Link href={cancelHref}>{t("Cancel")}</Link>
         </Button>
       </div>
     </form>

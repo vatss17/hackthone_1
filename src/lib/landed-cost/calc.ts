@@ -1,3 +1,4 @@
+import { cartonPlan } from "../cartons/plan.ts";
 import type { Basis, CostLine, Inputs, LineKey, LineResult, Result, Validation } from "./types.ts";
 
 /**
@@ -105,6 +106,7 @@ export function validateInputs(i: Inputs): Validation {
   optional(i.cartonLengthMm, "cartonLengthMm", LIMITS.dimMm);
   optional(i.cartonWidthMm, "cartonWidthMm", LIMITS.dimMm);
   optional(i.cartonHeightMm, "cartonHeightMm", LIMITS.dimMm);
+  optional(i.partialCartonGrossKg ?? null, "partialCartonGrossKg", LIMITS.weightKg);
   const dims = [i.cartonLengthMm, i.cartonWidthMm, i.cartonHeightMm].filter((d) => d !== null).length;
   must(dims === 0 || dims === 3, "cartonLengthMm", "Give all three carton dimensions, or none.");
 
@@ -142,7 +144,8 @@ export function calculate(i: Inputs): Result {
 
   const units = totalUnits(i);
   const cartons = cartonCount(i);
-  const grossWeightKg = i.cartonGrossWeightKg === null ? null : i.cartonGrossWeightKg * cartons;
+  // Full cartons use the entered carton weight. The one partial carton uses its own weight (entered, or scaled from a full carton).
+  const grossWeightKg = i.cartonGrossWeightKg === null ? null : cartonPlan({ units, unitsPerCarton: i.unitsPerCarton, unitWeightG: null, cartonGrossKg: i.cartonGrossWeightKg, partialGrossKg: i.partialCartonGrossKg ?? null }).totals.grossKg;
   const cbm = cartonVolumeCbm(i);
   const volumeCbm = cbm === null ? null : cbm * cartons;
 

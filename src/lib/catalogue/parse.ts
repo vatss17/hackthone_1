@@ -18,6 +18,26 @@ export interface ExtractedSpec {
   unit: string | null;
 }
 
+/** A problem found while reading the file, with where it was found. Errors must be corrected or explicitly left out before saving. */
+export interface ImportIssue {
+  severity: "error" | "warning";
+  /** "weight", "hs", or "spec:<name>". */
+  field: string;
+  message: string;
+  /** Where in the file: for a CSV "row 4, column 3 (Weight)", for text "block 2, line 'Weight: -5 kg'". */
+  location: string | null;
+}
+
+/** A physical value from the file that is NOT valid. It is never kept as a normal specification. */
+export interface RejectedValue {
+  field: string;
+  name: string;
+  raw: string;
+  unit: string | null;
+  reason: string;
+  location: string | null;
+}
+
 export interface SuggestedProduct {
   /** Position in the file, starting at 1. */
   index: number;
@@ -37,6 +57,12 @@ export interface SuggestedProduct {
   confidence: "high" | "medium" | "low";
   /** Plain-language notes about things dropped or guessed. */
   notes: string[];
+  /** Problems with values in the file, each with its location. Error-level issues need a correction or an explicit omission. */
+  issues: ImportIssue[];
+  /** Values that were rejected because they are not valid (for example a negative weight). Never saved as they are. */
+  rejected: RejectedValue[];
+  /** Why the confidence label is what it is, in words. */
+  confidenceWhy: string;
   /** The same name appears earlier in the file. */
   duplicateInFile: boolean;
 }
@@ -102,6 +128,30 @@ export function weightToGrams(raw: string, headerUnit: string | null): number | 
   if (["kg", "kgs", "kilogram", "kilograms"].includes(u)) return Math.round(n * 1000 * 1000) / 1000;
   return null;
 }
+
+const GRAM_UNITS = ["g", "gm", "gms", "gram", "grams"];
+const KG_UNITS = ["kg", "kgs", "kilogram", "kilograms"];
+
+/**
+ * Reads a weight and says exactly what is wrong with it, if anything. A negative or zero weight is a positive-number problem, a word is
+ * a not-a-number problem, and only a real mass unit problem is reported as a unit problem.
+ */
+export function checkWeight(raw: string, headerUnit: string | null): { grams: number | null; error: string | null; unit: string | null } {
+  const v = squash(raw);
+  const m = v.match(VALUE_UNIT);
+  if (!m) return { grams: null, error: `The weight “${clip(v, 40)}” is not a number.`, unit: null };
+  const n = Number(m[1].replace(",", "."));
+  const unit = m[2] ? squash(m[2]) : headerUnit;
+  if (!Number.isFinite(n)) return { grams: null, error: `The weight “${clip(v, 40)}” is not a number.`, unit };
+  if (n <= 0) return { grams: null, error: `The weight must be a positive number (found ${n}${unit ? ` ${unit}` : ""}).`, unit };
+  const u = (unit ?? "").toLowerCase().replace(/\./g, "");
+  if (GRAM_UNITS.includes(u)) return { grams: Math.round(n * 1000) / 1000, error: null, unit };
+  if (KG_UNITS.includes(u)) return { grams: Math.round(n * 1000 * 1000) / 1000, error: null, unit };
+  return { grams: null, error: unit ? `The weight unit “${clip(unit, 12)}” is not supported. Use grams (g) or kilograms (kg).` : "The weight has no unit. Say whether it is in grams (g) or kilograms (kg).", unit };
+}
+
+/** Specification names that describe a physical size or amount and so cannot be zero or negative. */
+const PHYSICAL = /\b(weight|mass|length|width|height|depth|diameter|thickness|wall|capacity|volume|size|radius|pressure|load)\b/i;
 
 const MATERIAL_NAMES: [RegExp, MaterialCode][] = [
   [/\blinear low[- ]density polyethylene\b/i, "LLDPE"],
@@ -228,6 +278,8 @@ interface Raw {
   hs?: string;
   weight?: { raw: string; unit: string | null };
   specs: { name: string; raw: string; unit: string | null }[];
+  /** Where each field came from in the file, for error messages. */
+  where?: Record<string, string>;
 }
 
 function build(raw: Raw, index: number, fromPdf: boolean): SuggestedProduct | null {
@@ -270,26 +322,43 @@ function build(raw: Raw, index: number, fromPdf: boolean): SuggestedProduct | nu
 
   let unitWeightG: number | null = null;
   const specs: ExtractedSpec[] = [];
+  const issues: ImportIssue[] = [];
+  const rejected: RejectedValue[] = [];
+  const at = (k: string) => raw.where?.[k] ?? null;
   if (raw.weight) {
-    unitWeightG = weightToGrams(raw.weight.raw, raw.weight.unit);
-    if (unitWeightG === null) {
-      const s = splitValueUnit(raw.weight.raw, raw.weight.unit);
-      specs.push({ name: "Weight", value: clip(s.value, LIMITS.specValue), unit: s.unit });
-      notes.push("The weight was not in grams or kilograms, so it was kept as a specification instead.");
+    const w = checkWeight(raw.weight.raw, raw.weight.unit);
+    if (w.grams !== null) unitWeightG = w.grams;
+    else {
+      const reason = w.error ?? "The weight could not be read.";
+      issues.push({ severity: "error", field: "weight", message: reason, location: at("weight") });
+      rejected.push({ field: "weight", name: "Weight", raw: clip(squash(raw.weight.raw), LIMITS.specValue), unit: w.unit, reason, location: at("weight") });
     }
   }
-  const seenSpec = new Set(specs.map((s) => s.name.toLowerCase()));
+  if (raw.hs && squash(raw.hs) && !hsCode) issues.push({ severity: "warning", field: "hs", message: "The code in the HS column is not a valid 4, 6, 8 or 10 digit format, so it was left out.", location: at("hs") });
+  const seenSpec = new Set<string>();
   for (const s of raw.specs) {
     const n = clip(squash(clean(s.name)), LIMITS.specName);
     if (!n || !squash(clean(s.raw)) || seenSpec.has(n.toLowerCase())) continue;
     seenSpec.add(n.toLowerCase());
     const v = splitValueUnit(clean(s.raw), s.unit);
+    const num = Number(v.value);
+    if (PHYSICAL.test(n) && Number.isFinite(num) && num <= 0 && /^-?\d/.test(v.value)) {
+      const reason = `${n} must be a positive number (found ${v.value}${v.unit ? ` ${v.unit}` : ""}).`;
+      issues.push({ severity: "error", field: `spec:${n}`, message: reason, location: at(`spec:${n}`) });
+      rejected.push({ field: `spec:${n}`, name: n, raw: clip(v.value, LIMITS.specValue), unit: v.unit, reason, location: at(`spec:${n}`) });
+      continue;
+    }
     specs.push({ name: n, value: clip(v.value, LIMITS.specValue), unit: v.unit });
     if (specs.length >= LIMITS.specs) break;
   }
 
-  const fromFile = [description, raw.category, raw.materials, raw.use, specs.length > 0 ? "x" : null].filter((x) => x && String(x).trim()).length;
-  const confidence: SuggestedProduct["confidence"] = fromPdf ? (fromFile >= 3 ? "medium" : "low") : fromFile >= 3 ? "high" : fromFile >= 2 ? "medium" : "low";
+  const explicit = [description, raw.category, raw.materials, raw.use, specs.length > 0 || rejected.length > 0 ? "x" : null, raw.weight ? "x" : null].filter((x) => x && String(x).trim()).length;
+  const inferred = Object.values(source).filter((x) => x === "rule").length;
+  const errorCount = issues.filter((x) => x.severity === "error").length;
+  let confidence: SuggestedProduct["confidence"] = explicit >= 4 && inferred === 0 && issues.length === 0 && !fromPdf ? "high" : explicit >= 3 || (explicit >= 2 && errorCount === 0) ? "medium" : "low";
+  if (errorCount > 0) confidence = "low";
+  if (fromPdf && confidence === "high") confidence = "medium";
+  const confidenceWhy = `${explicit} of 6 key details were stated in the file${inferred ? `, ${inferred} suggested by a rule` : ""}${errorCount ? `, ${errorCount} value${errorCount === 1 ? "" : "s"} must be corrected or left out` : issues.length ? `, ${issues.length} to look at` : ""}${fromPdf ? ", and the layout of a PDF is lost" : ""}. This reflects how complete and clean the file was, not whether the facts are right.`;
   if (fromPdf) notes.push("Read from a PDF, where layout is lost. Check every field.");
 
   return {
@@ -305,7 +374,10 @@ function build(raw: Raw, index: number, fromPdf: boolean): SuggestedProduct | nu
     specs,
     source,
     confidence,
+    confidenceWhy,
     notes,
+    issues,
+    rejected,
     duplicateInFile: false,
   };
 }
@@ -314,6 +386,7 @@ function fromCsv(text: string, delimiter: string, fromPdf: boolean): { products:
   const rows = parseCsv(text, delimiter);
   const warnings: string[] = [];
   if (rows.length < 2) return { products: [], warnings: ["The file has a header row but no product rows."], skipped: 0 };
+  const headers = rows[0];
   const header = rows[0].map((h) => normaliseKey(clean(h)));
   const mapped = header.map((h) => fieldFor(h.key));
   if (!mapped.includes("name")) {
@@ -324,11 +397,13 @@ function fromCsv(text: string, delimiter: string, fromPdf: boolean): { products:
   const products: SuggestedProduct[] = [];
   let skipped = 0;
   rows.slice(1).forEach((cells, r) => {
-    const raw: Raw = { specs: [] };
+    const raw: Raw = { specs: [], where: {} };
     cells.forEach((cell, c) => {
       const v = clean(cell).trim();
       if (!v || c >= header.length) return;
       const f = mapped[c];
+      const place = `row ${r + 2}, column ${c + 1} (“${clip(squash(clean(headers[c] ?? "")), 40)}”)`;
+      raw.where![f ?? `spec:${titleCase(header[c].key || `Column ${c + 1}`)}`] = place;
       if (f === "description") (raw.description ??= []).push(v);
       else if (f === "weight") raw.weight = { raw: v, unit: header[c].unit };
       else if (f) (raw as unknown as Record<string, unknown>)[f] = v;
@@ -394,8 +469,10 @@ function fromText(text: string, fromPdf: boolean): { products: SuggestedProduct[
     if (p) products.push(p);
     else skipped++;
   };
+  let blockNo = 0;
   for (const block of blocksOf(text)) {
-    let raw: Raw = { specs: [] };
+    blockNo++;
+    let raw: Raw = { specs: [], where: {} };
     let first = true;
     for (const original of block) {
       const line = squash(clean(original).replace(BULLET, ""));
@@ -404,13 +481,14 @@ function fromText(text: string, fromPdf: boolean): { products: SuggestedProduct[
       // A "Product:" or "Name:" line always starts a new product, whatever came before it.
       if (kv && fieldFor(normaliseKey(kv[1]).key) === "name" && (raw.name || raw.specs.length || raw.description?.length)) {
         finish(raw);
-        raw = { specs: [] };
+        raw = { specs: [], where: {} };
         first = true;
       }
       if (kv) {
         const { key, unit } = normaliseKey(kv[1]);
         const f = fieldFor(key);
         const value = kv[2].trim();
+        raw.where![f ?? `spec:${titleCase(key)}`] = `block ${blockNo}, line “${clip(line, 50)}”`;
         if (f === "name") raw.name ??= value;
         else if (f === "description") (raw.description ??= []).push(value);
         else if (f === "weight") raw.weight = { raw: value, unit };

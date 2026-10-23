@@ -30,7 +30,7 @@ export const RETRIEVED = "2026-10-22";
 export const SOURCES: Source[] = [
   {
     id: "cepa-in-force",
-    fact: "The India–UAE Comprehensive Economic Partnership Agreement came into effect on 1 May 2022 (signed 18 February 2022).",
+    fact: "The bilateral Comprehensive Economic Partnership Agreement (CEPA) came into effect on 1 May 2022 (signed 18 February 2022).",
     publisher: "Ministry of Commerce and Industry, Government of India (reported on commerce.gov.in); corroborated by PwC Middle East",
     url: "https://www.pwc.com/m1/en/tax/documents/2022/the-uae-india-comprehensive-economic-partnership-agreement-enters-into-force.pdf",
     retrieved: RETRIEVED,
@@ -39,16 +39,16 @@ export const SOURCES: Source[] = [
   },
   {
     id: "uae-duty-general",
-    fact: "Several trade guides state that UAE customs duty is generally 5% of CIF value for most goods, with exceptions for some products.",
-    publisher: "Secondary trade guides; Sharjah Customs publishes a tariff page",
+    fact: "For the demo destination market, several trade guides state that customs duty is generally 5% of CIF value for most goods, with exceptions for some products.",
+    publisher: "Secondary trade guides; a regional customs authority publishes a tariff page",
     url: "https://sharjahcustoms.gov.ae/en/customs-tariff",
     retrieved: RETRIEVED,
     primaryOpened: false,
-    caveat: "No federal authority page was retrieved. The rate for your product depends on its tariff line. Confirm with UAE customs or a customs broker.",
+    caveat: "No federal authority page was retrieved. The rate for your product depends on its tariff line. Confirm with destination customs or a customs broker.",
   },
   {
     id: "uae-vat",
-    fact: "UAE VAT is reported to be 5% and to apply to imports as well as local supplies.",
+    fact: "For the demo destination market, VAT is reported to be 5% and to apply to imports as well as local supplies.",
     publisher: "Secondary guidance (Federal Decree-Law No. 8 of 2017 is the law cited)",
     url: "https://roedl.com/insights/vat-guidelines/united-arab-emirates-rate-registration-declaration-requirements",
     retrieved: RETRIEVED,
@@ -80,11 +80,11 @@ export type SectionKey = "indianExport" | "uaeImport" | "testing" | "packaging" 
 
 export const SECTION_TITLES: Record<SectionKey, { title: string; blurb: string }> = {
   indianExport: { title: "Indian export checks", blurb: "Things an Indian exporter typically has to settle before goods leave India." },
-  uaeImport: { title: "UAE import checks", blurb: "Questions about what the UAE side may require of the product and the importer." },
+  uaeImport: { title: "Destination import checks", blurb: "Questions about what the destination market side may require of the product and the importer." },
   testing: { title: "Testing and certification questions", blurb: "Evidence a buyer or authority may ask for." },
   packaging: { title: "Packaging and labelling", blurb: "How the product is packed, marked and described." },
   hs: { title: "HS classification", blurb: "Duty, origin and many requirements depend on the product code. Nothing here is a classification." },
-  cepa: { title: "India–UAE CEPA: rules-of-origin questions", blurb: "Whether the product could qualify for preferential treatment depends on origin rules. This platform does not decide eligibility." },
+  cepa: { title: "Trade agreement (CEPA): rules-of-origin questions", blurb: "Whether the product could qualify for preferential treatment depends on origin rules. This platform does not decide eligibility." },
   schemes: { title: "Indian export schemes to investigate", blurb: "Schemes that may be relevant. No amount or eligibility is stated." },
 };
 
@@ -109,8 +109,8 @@ const COMMON: Pick<Record<SectionKey, Item[]>, "indianExport" | "uaeImport" | "c
     i("common.rcmc", "Should you register with the export promotion council for plastics?", "Membership certificates are often needed to claim certain benefits. Confirm with the council."),
   ],
   uaeImport: [
-    i("common.importer", "Who is the importer of record in the UAE, and do they hold the trade licence and customs registration needed to import this product?", "The importer carries many of the UAE-side obligations."),
-    i("common.technical", "Is this product covered by a UAE or GCC technical regulation or conformity scheme?", "This decides whether certificates or product registration are needed. It has not been checked."),
+    i("common.importer", "Who is the importer of record in the destination market, and do they hold the trade licence and customs registration needed to import this product?", "The importer carries many of the destination-side obligations."),
+    i("common.technical", "Is this product covered by a destination technical regulation or conformity scheme?", "This decides whether certificates or product registration are needed. It has not been checked."),
     i("common.duty", "What customs duty applies to this product's tariff line?", "Trade guides report a general rate (see the sources below) but your tariff line may differ.", "secondary", "uae-duty-general"),
     i("common.vat", "Will the importer be VAT-registered, so import VAT is recoverable?", "Import VAT is excluded from the calculator on that basis. Confirm with an adviser.", "secondary", "uae-vat"),
   ],
@@ -142,9 +142,9 @@ export const FAMILIES: Family[] = [
     sections: {
       indianExport: [i("fc.ex.food", "Does exporting a food-contact product bring any extra Indian export check, such as an inspection or quality requirement?", "Some categories have export-specific rules. Confirm with the relevant authority.")],
       uaeImport: [
-        i("fc.uae.contact", "Which food-contact requirements apply to plastic articles imported into the UAE, and against which standard must materials be shown suitable?", "Food-contact suitability is typically the first gate for these products."),
-        i("fc.uae.single", "Do rules on single-use plastics reach this product, or is a reusable product outside them?", "Restrictions on some single-use items have been introduced in parts of the UAE. Applicability must be checked against official sources."),
-        i("fc.uae.regis", "Is any registration or approval of the product or the importer needed for food-contact goods?", "Some jurisdictions register food-contact articles. Confirm for the UAE."),
+        i("fc.uae.contact", "Which food-contact requirements apply to plastic articles imported into the destination market, and against which standard must materials be shown suitable?", "Food-contact suitability is typically the first gate for these products."),
+        i("fc.uae.single", "Do rules on single-use plastics reach this product, or is a reusable product outside them?", "Restrictions on some single-use items have been introduced in parts of the destination market. Applicability must be checked against official sources."),
+        i("fc.uae.regis", "Is any registration or approval of the product or the importer needed for food-contact goods?", "Some jurisdictions register food-contact articles. Confirm for the destination market."),
       ],
       testing: [
         i("fc.test.migration", "Do you hold migration test reports for the exact material and colourants, from an accredited laboratory?", "Buyers usually ask for them. The test method that applies must be confirmed."),
@@ -153,8 +153,8 @@ export const FAMILIES: Family[] = [
         i("fc.test.recycled", "Is any recycled material used? If so, is it acceptable for food contact?", "Recycled content in food-contact products is tightly controlled in many markets."),
       ],
       packaging: [
-        i("fc.pack.label", "What must the retail or carton label show, and in which languages (including Arabic)?", "Language and content expectations have not been checked."),
-        i("fc.pack.symbol", "Is a food-contact symbol or statement expected on the product or pack?", "Practice differs by market. Confirm for the UAE."),
+        i("fc.pack.label", "What must the retail or carton label show, and in which languages (including the destination's official language)?", "Language and content expectations have not been checked."),
+        i("fc.pack.symbol", "Is a food-contact symbol or statement expected on the product or pack?", "Practice differs by market. Confirm for the destination market."),
         i("fc.pack.print", "Are printed or decorated surfaces in contact with food? Are the inks suitable?", "Inks and decoration can change the evidence needed."),
       ],
       hs: [i("fc.hs.which", "Which heading fits: a packing article (3923) or a household or kitchen article (3924), and what is the 8-digit tariff line?", "Both are plausible depending on use and design. A classifier decides.", "inferred")],
@@ -175,7 +175,7 @@ export const FAMILIES: Family[] = [
     sections: {
       indianExport: [i("hg.ex.none", "Is there any product-specific Indian export requirement for general household plastics?", "Usually none beyond the common checks, but this has not been confirmed.")],
       uaeImport: [
-        i("hg.uae.conf", "Do general consumer plastics need a conformity certificate in the UAE, or are requirements driven by retail buyers?", "This is the key question for this family and has not been answered."),
+        i("hg.uae.conf", "Do general consumer plastics need a conformity certificate in the destination market, or are requirements driven by retail buyers?", "This is the key question for this family and has not been answered."),
         i("hg.uae.child", "Is the product likely to be used by children? If so, do extra safety rules apply?", "Children's use can add requirements."),
       ],
       testing: [
@@ -184,7 +184,7 @@ export const FAMILIES: Family[] = [
         i("hg.test.furn", "For furniture, do buyers expect strength, stability or flammability test reports?", "Hospitality buyers often ask for them."),
       ],
       packaging: [
-        i("hg.pack.label", "What marking and language does the carton and product need (including Arabic)?", "Not yet checked."),
+        i("hg.pack.label", "What marking and language does the carton and product need (including the destination's official language)?", "Not yet checked."),
         i("hg.pack.pallet", "If you ship on wooden pallets, is wood-packaging treatment marking needed?", "Wood packaging is commonly regulated internationally. Confirm the requirement."),
         i("hg.pack.nest", "Can the product be nested or stacked to reduce freight cost?", "Carton design changes freight cost directly. See the calculator."),
       ],
@@ -237,7 +237,7 @@ export const FAMILIES: Family[] = [
     sections: {
       indianExport: [i("ec.ex.none", "Is there any product-specific Indian export requirement for electrical or construction plastics?", "Not confirmed.")],
       uaeImport: [
-        i("ec.uae.elec", "Is conduit treated as an electrical product needing conformity assessment in the UAE?", "Electrical products often have a stricter regime. Not checked."),
+        i("ec.uae.elec", "Is conduit treated as an electrical product needing conformity assessment in the destination market?", "Electrical products often have a stricter regime. Not checked."),
         i("ec.uae.fire", "Are there fire-behaviour requirements for the building types you would supply?", "Fire performance can decide whether a product is usable at all."),
         i("ec.uae.utility", "Do emirate utilities or project authorities approve materials before use?", "Approved-supplier lists can decide who may sell."),
       ],

@@ -45,10 +45,13 @@ export function subscribe(cb: () => void) {
 
 const noop = () => () => {};
 
+/** The saved text for one assessment: the current version, else an older one (which is migrated when read and never deleted). */
+const readAny = (scope: string, ref: string): string | null => read(storageKey(scope, ref)) ?? read(storageKey(scope, ref, 1));
+
 export function useAssessment({ scope, assessmentRef, defaults }: { scope: string; assessmentRef: string; defaults: Inputs }) {
   const key = storageKey(scope, assessmentRef);
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
-  const raw = useSyncExternalStore(subscribe, () => read(key), () => null);
+  const raw = useSyncExternalStore(subscribe, () => readAny(scope, assessmentRef), () => null);
 
   const assessment: Assessment = useMemo(
     () => (raw ? parseAssessment(raw, assessmentRef, defaults) : null) ?? newAssessment(assessmentRef, defaults),
@@ -65,7 +68,18 @@ export function useAssessment({ scope, assessmentRef, defaults }: { scope: strin
     [key],
   );
 
-  const update = useCallback((fn: (a: Assessment) => Assessment) => save(fn(assessment)), [assessment, save]);
+  /**
+   * Applies a change to the LATEST saved copy, not to the copy this component last rendered. Two quick edits (a note and a status,
+   * or two tabs) therefore never overwrite each other with stale data.
+   */
+  const update = useCallback(
+    (fn: (a: Assessment) => Assessment) => {
+      const latestRaw = readAny(scope, assessmentRef);
+      const latest = (latestRaw ? parseAssessment(latestRaw, assessmentRef, defaults) : null) ?? newAssessment(assessmentRef, defaults);
+      return save(fn(latest));
+    },
+    [scope, assessmentRef, defaults, save],
+  );
 
   const reset = useCallback(() => {
     memory.delete(key);

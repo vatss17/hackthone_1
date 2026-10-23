@@ -22,8 +22,18 @@
     "test:copilot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/catalogue/*.test.mjs tests/workspace/*.test.mjs",
     "demo:preflight": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file-if-exists=.env.local --env-file-if-exists=.env.test.local scripts/demo-preflight.mjs",
     "test:ux": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/capacity/*.test.mjs tests/classification/*.test.mjs tests/overview/*.test.mjs",
+    "test:research": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/logistics/*.test.mjs",
+    "test:ui": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/ui/*.test.mjs",
+    "test:journey": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/start/*.test.mjs",
+    "test:chat": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/start/chat-flow.test.mjs tests/i18n/chatsetup-data.test.mjs",
+    "test:ux-preview": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/ux-preview/*.test.mjs",
+    "test:audit-fixes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/cartons/*.test.mjs tests/copy/*.test.mjs tests/journey/*.test.mjs tests/products/*.test.mjs tests/auth/recovery.test.mjs tests/workspace/backup.test.mjs tests/workspace/persistence.test.mjs tests/workspace/answers.test.mjs tests/workspace/doc-validation.test.mjs tests/landed-cost/assumptions.test.mjs tests/catalogue/import-errors.test.mjs tests/opportunities/guidance.test.mjs",
     "ai:readiness": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/ai-readiness.mjs",
-    "test:intelligence": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/ai/*.test.mjs tests/evidence/*.test.mjs"
+    "test:intelligence": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/ai/*.test.mjs tests/evidence/*.test.mjs",
+    "test:atlas": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/atlas/*.test.mjs",
+    "test:i18n": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/i18n/*.test.mjs",
+    "test:ai-input": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/ai-input/*.test.mjs",
+    "test:schemes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/schemes/*.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -31,6 +41,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.61.0",
+    "motion": "^12.43.0",
     "next": "16.4.2",
     "radix-ui": "^1.8.1",
     "react": "19.3.0",

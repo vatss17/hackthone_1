@@ -30,6 +30,7 @@ export function sampleInputs(facts?: Partial<ProductFacts>): Inputs {
     cartonLengthMm: facts?.cartonLengthMm ?? 600,
     cartonWidthMm: facts?.cartonWidthMm ?? 400,
     cartonHeightMm: facts?.cartonHeightMm ?? 300,
+    partialCartonGrossKg: null,
     unitProductionCostInr: 85,
     lines: {
       packaging: line(60, "per_carton"),

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/client";
 import { Notice } from "@/components/auth/notice";
 import { PasswordField, TextField } from "@/components/auth/fields";
 import { useFocusOnError } from "@/components/auth/use-focus-on-error";
@@ -10,23 +11,22 @@ import { signUp } from "@/lib/actions/auth";
 import { PASSWORD_MIN, type AuthFormState } from "@/lib/auth-types";
 
 export function SignupForm() {
+  const t = useT();
   const [state, action, pending] = useActionState<AuthFormState, FormData>(signUp, {});
   const alertRef = useFocusOnError(state);
 
   if (state.confirmationSent) {
     return (
       <div className="grid gap-4" role="status">
-        <h2 className="text-base font-semibold">Check your email</h2>
+        <h2 className="text-base font-semibold">{t("Check your email")}</h2>
         <p className="text-sm text-muted-foreground">
-          We sent a confirmation link to <span className="font-medium text-foreground">{state.email}</span>. Open it to
-          activate your account, then sign in.
+          {t("We sent a confirmation link to {email}. Open it to activate your account, then sign in.", { email: "\u0000" }).split("\u0000").flatMap((part, i) => (i === 0 ? [part] : [<span key="e" className="font-medium text-foreground">{state.email}</span>, part]))}
         </p>
         <p className="text-sm text-muted-foreground">
-          The link works once and expires after a short time. If nothing arrives in a few minutes, check your spam folder
-          or sign up again with the same address.
+          {t("The link works once and expires after a short time. If nothing arrives in a few minutes, check your spam folder or sign up again with the same address.")}
         </p>
         <Link href="/login" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
-          Go to sign in
+          {t("Go to sign in")}
         </Link>
       </div>
     );
@@ -36,13 +36,13 @@ export function SignupForm() {
     <form action={action} noValidate className="grid gap-4">
       {state.error && (
         <div ref={alertRef} tabIndex={-1} className="outline-none">
-          <Notice tone="error">{state.error}</Notice>
+          <Notice tone="error">{t(state.error)}</Notice>
         </div>
       )}
 
       <TextField
         name="email"
-        label="Work email"
+        label={t("Work email")}
         type="email"
         autoComplete="email"
         autoCapitalize="none"
@@ -54,28 +54,28 @@ export function SignupForm() {
       />
       <PasswordField
         name="password"
-        label="Password"
+        label={t("Password")}
         autoComplete="new-password"
-        hint={`At least ${PASSWORD_MIN} characters.`}
+        hint={t("At least {min} characters.", { min: PASSWORD_MIN })}
         error={state.fieldErrors?.password}
         required
       />
       <PasswordField
         name="confirmPassword"
-        label="Confirm password"
+        label={t("Confirm password")}
         autoComplete="new-password"
         error={state.fieldErrors?.confirmPassword}
         required
       />
 
       <Button type="submit" size="lg" className="h-11 w-full sm:h-9" disabled={pending}>
-        {pending ? "Creating account…" : "Create account"}
+        {pending ? t("Creating account…") : t("Create account")}
       </Button>
 
       <p className="text-sm text-muted-foreground">
-        Already have an account?{" "}
+        {t("Already have an account?")}{" "}
         <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
-          Sign in
+          {t("Sign in")}
         </Link>
       </p>
     </form>

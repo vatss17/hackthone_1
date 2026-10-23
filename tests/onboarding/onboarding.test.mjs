@@ -149,21 +149,22 @@ describe("manufacturer company registration (end to end)", { skip: !enabled }, (
 
   it("the personalised dashboard shows the company; a refresh keeps the state and /onboarding no longer shows", async () => {
     const b = await signIn("a");
-    // A registered company with no factory is guided to factory registration before the dashboard.
+    // A registered company with no factory and no product is asked where to start (Path A or B) before the dashboard.
     const guided = await b.browse("/");
-    assert.equal(guided.finalPath, "/factories/new", JSON.stringify(guided.trail));
+    assert.equal(guided.finalPath, "/start", JSON.stringify(guided.trail));
+    assert.match(guided.text, /What would you like to do first/);
     await addFactoryViaForm(b, `${company("a")} plant`);
     for (let i = 0; i < 3; i++) {
       const home = await b.get("/");
       assert.equal(home.status, 200);
-      assert.match(home.text, new RegExp(`Welcome, ${company("a")}`));
-      assert.match(home.text, /Your company/);
+      assert.ok(home.text.includes(company("a")), "the company name is not shown on the overview");
+      assert.match(home.text, /Every export, one view/);
       assert.match(home.text, /Owner/);
       assert.ok(home.text.includes(`${company("a")} Legal`), "legal name not shown");
     }
     const again = await b.browse("/onboarding");
     assert.equal(again.finalPath, "/", `existing owner saw registration again: ${JSON.stringify(again.trail)}`);
-    assert.match(again.text, /Welcome, /);
+    assert.match(again.text, /Every export, one view/);
   });
 
   it("an existing owner cannot create a second company; replaying the form changes nothing", async () => {
@@ -231,11 +232,15 @@ describe("manufacturer company registration (end to end)", { skip: !enabled }, (
     const owner = await signIn("a");
     const out = await owner.submit("/", "Sign out", {});
     assert.equal(out.status, 303);
-    assert.equal((await owner.get("/")).status, 307);
+    const visitor = await owner.get("/");
+    assert.equal(visitor.status, 200);
+    assert.match(visitor.text, /One intelligent platform/, "after sign out, / is the public homepage");
+    assert.ok(!visitor.text.includes(company("a")), "the company name is still visible after sign out");
+    assert.equal((await owner.get("/workspace")).status, 307);
     const back = await signIn("a");
     const landing = await back.browse("/");
     assert.equal(landing.finalPath, "/");
-    assert.match(landing.text, new RegExp(`Welcome, ${company("a")}`));
+    assert.ok(landing.text.includes(company("a")), "the company name is not shown after signing in again");
     // Never-registered user (b): stays unregistered, still sent to registration after a round trip.
     const first = await signIn("b");
     assert.equal((await first.browse("/")).finalPath, "/onboarding");

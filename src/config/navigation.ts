@@ -18,7 +18,7 @@ export interface NavItem {
   status: NavStatus;
   /** Where it sits in the sidebar. */
   group: "workspace" | "journey";
-  /** Shown in the short main list. Everything else sits under "All export tools". */
+  /** In the main navigation. Every other module is reached in context (the journey bar, each product's workspace and the command palette). */
   primary?: boolean;
   /** One line describing what the module does. Documentation only. */
   description: string;
@@ -28,7 +28,7 @@ export const navigation: NavItem[] = [
   {
     id: "overview",
     primary: true,
-    label: "Home",
+    label: "Command Center",
     href: "/",
     status: "available",
     group: "workspace",
@@ -37,7 +37,7 @@ export const navigation: NavItem[] = [
   {
     id: "workspace",
     primary: true,
-    label: "My export workspace",
+    label: "My exports",
     href: "/workspace",
     status: "available",
     group: "workspace",
@@ -46,7 +46,7 @@ export const navigation: NavItem[] = [
   {
     id: "factory",
     primary: true,
-    label: "My factory",
+    label: "Factory Intelligence",
     href: "/factories",
     status: "available",
     group: "workspace",
@@ -54,7 +54,6 @@ export const navigation: NavItem[] = [
   },
   {
     id: "products",
-    primary: true,
     label: "My products",
     href: "/products",
     status: "available",
@@ -64,7 +63,7 @@ export const navigation: NavItem[] = [
   {
     id: "opportunities",
     primary: true,
-    label: "Export opportunities",
+    label: "Opportunity Studio",
     href: "/opportunities",
     status: "available",
     group: "journey",
@@ -72,15 +71,15 @@ export const navigation: NavItem[] = [
   },
   {
     id: "evidence",
-    label: "UAE Market Evidence",
+    label: "Market Explorer",
     href: "/evidence",
     status: "available",
     group: "journey",
-    description: "Reported UAE trade values for the plastic product headings behind your opportunities.",
+    description: "Reported destination trade values for the plastic product headings behind your opportunities.",
   },
   {
     id: "viability",
-    label: "Landed Cost & Viability",
+    label: "Export Economics",
     href: "/viability",
     status: "available",
     group: "journey",
@@ -96,7 +95,7 @@ export const navigation: NavItem[] = [
   },
   {
     id: "compliance",
-    label: "Compliance & Testing",
+    label: "Compliance Engine",
     href: "/compliance",
     status: "available",
     group: "journey",
@@ -104,15 +103,15 @@ export const navigation: NavItem[] = [
   },
   {
     id: "schemes",
-    label: "CEPA & Incentives",
+    label: "Benefits Studio",
     href: "/schemes",
     status: "available",
     group: "journey",
-    description: "India–UAE CEPA, rules of origin and Indian export incentives.",
+    description: "Trade agreement (CEPA) origin rules and Indian export incentives.",
   },
   {
     id: "documentation",
-    label: "Export Documents",
+    label: "Document Studio",
     href: "/documentation",
     status: "available",
     group: "journey",
@@ -128,15 +127,62 @@ export const navigation: NavItem[] = [
   },
   {
     id: "services",
-    label: "Expert Assistance",
+    label: "Assistance Hub",
     href: "/services",
     status: "available",
     group: "journey",
     description: "Requests for testing, freight quotes and specialist support.",
   },
+  {
+    id: "mission",
+    primary: true,
+    label: "Mission Control",
+    href: "/mission",
+    status: "available",
+    group: "workspace",
+    description: "Each export as a mission: the journey map, a task board, dependencies and blockers.",
+  },
+  {
+    id: "world",
+    primary: true,
+    label: "Factory to World",
+    href: "/world",
+    status: "available",
+    group: "journey",
+    description: "How your capabilities become products, and where those products can go.",
+  },
+  {
+    id: "schemefinder",
+    primary: true,
+    label: "Scheme Finder",
+    href: "/schemes/finder",
+    status: "available",
+    group: "journey",
+    description: "Tell Atlas what you export and where: it lists the researched schemes worth checking, with why and sources.",
+  },
+  {
+    id: "whatif",
+    primary: true,
+    label: "What-If Studio",
+    href: "/what-if",
+    status: "available",
+    group: "journey",
+    description: "Try price, freight, exchange-rate and duty changes without touching your saved numbers.",
+  },
+  {
+    id: "workbench",
+    primary: true,
+    label: "AI Workbench",
+    href: "/workbench",
+    status: "available",
+    group: "workspace",
+    description: "Atlas AI: ask in your own words, watch it run real tools, approve what it proposes.",
+  },
 ];
 
-export const primaryNav = navigation.filter((i) => i.primary);
+/** The main navigation, in the approved order. */
+const PRIMARY_ORDER = ["overview", "workbench", "factory", "opportunities", "world", "schemefinder", "workspace", "mission", "whatif"];
+export const primaryNav = PRIMARY_ORDER.map((id) => navigation.find((i) => i.id === id && i.primary)).filter((i): i is NavItem => !!i);
 export const moreNav = navigation.filter((i) => !i.primary);
 export const workspaceNav = navigation.filter((i) => i.group === "workspace");
 export const journeyNav = navigation.filter((i) => i.group === "journey");

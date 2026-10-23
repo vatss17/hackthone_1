@@ -166,6 +166,36 @@ export async function listProducts(organizationId: string): Promise<ProductSumma
   }));
 }
 
+export type ArchivedProduct = { id: string; name: string; category: string | null; archivedAt: string; specCount: number; factoryNames: string[] };
+
+/** Products the company has archived. They are never deleted and stay readable here. */
+export async function listArchivedProducts(organizationId: string): Promise<ArchivedProduct[]> {
+  const supabase = await createClient();
+  const [prod, links, specs] = await Promise.all([
+    supabase.from("products").select("id, name, category, archived_at").eq("organization_id", organizationId).not("archived_at", "is", null).order("archived_at", { ascending: false }),
+    supabase.from("factory_products").select("product_id, factory:factories(name)").eq("organization_id", organizationId),
+    supabase.from("product_specifications").select("product_id").eq("organization_id", organizationId),
+  ]);
+  if (prod.error || links.error || specs.error) throw new Error("Could not load archived products.");
+  const linkRows = links.data as unknown as { product_id: string; factory: Embedded<{ name: string }> }[];
+  return (prod.data as unknown as { id: string; name: string; category: string | null; archived_at: string }[]).map((p) => ({
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    archivedAt: p.archived_at,
+    specCount: (specs.data as { product_id: string }[]).filter((s) => s.product_id === p.id).length,
+    factoryNames: linkRows.filter((l) => l.product_id === p.id).map((l) => one(l.factory)?.name).filter((n): n is string => !!n),
+  }));
+}
+
+/** Just the product's name, for the product context shown on every product page. Null for catalogue ids or a product that is gone. */
+export const getProductName = cache(async (organizationId: string, id: string): Promise<string | null> => {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.from("products").select("name").eq("organization_id", organizationId).eq("id", id).maybeSingle();
+  return (data?.name as string | undefined) ?? null;
+});
+
 export type ProductDetail = {
   id: string;
   name: string;
@@ -233,9 +263,15 @@ export async function getProductDetail(organizationId: string, id: string): Prom
 const PERIOD_LABEL: Record<string, string> = { day: "per day", month: "per month", year: "per year" };
 const UNIT_LABEL: Record<string, string> = { kg: "kg", tonnes: "tonnes", pieces: "pieces", metres: "metres", m2: "m²" };
 
-export function capacityText(p: { capacityQuantity: number | null; capacityUnit: string | null; capacityPeriod: string | null }): string | null {
+/** "120 kg per day". Pass `t` (a translator) to show the unit word and period in the reader's language; the engine reads it in English. */
+export function capacityText(
+  p: { capacityQuantity: number | null; capacityUnit: string | null; capacityPeriod: string | null },
+  t?: (source: string) => string,
+): string | null {
   if (p.capacityQuantity === null || !p.capacityUnit || !p.capacityPeriod) return null;
-  return `${new Intl.NumberFormat("en-IN").format(p.capacityQuantity)} ${UNIT_LABEL[p.capacityUnit] ?? p.capacityUnit} ${PERIOD_LABEL[p.capacityPeriod] ?? p.capacityPeriod}`;
+  const unit = UNIT_LABEL[p.capacityUnit] ?? p.capacityUnit;
+  const period = PERIOD_LABEL[p.capacityPeriod] ?? p.capacityPeriod;
+  return `${new Intl.NumberFormat("en-IN").format(p.capacityQuantity)} ${t ? t(unit) : unit} ${t ? t(period) : period}`;
 }
 
 /**

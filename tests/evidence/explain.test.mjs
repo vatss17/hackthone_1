@@ -42,7 +42,7 @@ describe("evidence", () => {
   it("quotes reported figures (synthetic here) with their year and keeps them to broad headings", () => {
     const evd = base().dimensions[1];
     assert.match(evd.lines.join(" "), /HS 3917/);
-    assert.match(evd.lines.join(" "), /the UAE reported USD 4\.0 million of imports from all countries in \d{4}/);
+    assert.match(evd.lines.join(" "), /the destination market reported USD 4\.0 million of imports from all countries in \d{4}/);
     assert.match(evd.lines.join(" "), /not demand for this product, not buyer intent and not a forecast/);
   });
   it("says so plainly when there is no data", () => {
@@ -92,7 +92,7 @@ describe("why, uncertainty and plausibility", () => {
   });
   it("always lists what remains uncertain, including the unverified HS code", () => {
     const u = base().uncertain.join(" ");
-    assert.match(u, /UAE buyer would pay/);
+    assert.match(u, /Whether a buyer would pay|buyer would pay/);
     assert.match(u, /HS code/);
   });
   it("states plausibility as an inference, and a stretch as a stretch", () => {

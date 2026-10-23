@@ -111,6 +111,7 @@ export function matchEntry(entry: CatalogueEntry, factory: FactoryInput): MatchR
   const customMaterials = factory.materials.filter((m) => m.code === null).map((m) => m.label);
   const reasons: string[] = [];
   const gaps: string[] = [];
+  const optional: string[] = [];
   const parts: FitPart[] = [];
 
   // ---- processes
@@ -142,12 +143,17 @@ export function matchEntry(entry: CatalogueEntry, factory: FactoryInput): MatchR
     gaps.push(`${PROCESS_NAMES[p]} is not in your declared processes. This would be a new capability, so treat it as a stretch.`);
   }
   for (const p of helpful.filter((x) => !declaredProcesses.has(x))) {
-    gaps.push(`A full range may also need ${PROCESS_NAMES[p].toLowerCase()}, which you have not declared.`);
+    optional.push(
+      p === "extrusion" && entry.purchasedInputs?.length
+        ? "Optional: extrusion, only if you want to make your own sheet. Sheet can be bought in, so it is not needed to start."
+        : `Optional: ${PROCESS_NAMES[p].toLowerCase()} is not needed to make this product, but a fuller range may use it.`,
+    );
   }
 
   // ---- materials
   const matchedPreferred = entry.materials.preferred.filter((m) => declaredMaterials.has(m));
   const matchedPossible = entry.materials.possible.filter((m) => declaredMaterials.has(m));
+  let alternativeMaterials: MaterialCode[] = [];
   let materialPoints = 0;
   let materialDetail = "None of your declared materials is on this product's usual list.";
   if (matchedPreferred.length > 0) {
@@ -156,7 +162,8 @@ export function matchEntry(entry: CatalogueEntry, factory: FactoryInput): MatchR
     reasons.push(`You work with ${list(matchedPreferred)}, a usual material for this kind of product.`);
     const missingPreferred = entry.materials.preferred.filter((m) => !declaredMaterials.has(m));
     if (missingPreferred.length > 0 && matchedPreferred.length < entry.materials.preferred.length) {
-      gaps.push(`Other common grades (${list(missingPreferred)}) are not in your declared materials. Confirm which grade suits the application.`);
+      alternativeMaterials = missingPreferred;
+      optional.push(`Alternative grades also used for this product, not required: ${list(missingPreferred)}. Confirm which grade suits the application.`);
     }
   } else if (matchedPossible.length > 0) {
     materialPoints = 10;
@@ -194,7 +201,7 @@ export function matchEntry(entry: CatalogueEntry, factory: FactoryInput): MatchR
     machineDetail = "Machines are declared but none has a rating.";
     gaps.push("Add ratings (for example clamp force or screw diameter) to your machines to firm up this match.");
   } else if (required.every((p) => declaredProcesses.has(p))) {
-    gaps.push(`No machine is declared for ${list(required.map((p) => PROCESS_NAMES[p].toLowerCase()))}. Add machinery to firm up this match.`);
+    gaps.push(`You declared ${list(required.map((p) => PROCESS_NAMES[p].toLowerCase()))} but list no machine for ${required.length > 1 ? "them" : "it"}. Add the machinery to firm up this match.`);
   }
   if (entry.sizeClass === "large") {
     machinePoints = Math.min(machinePoints, LARGE_PRODUCT_MACHINE_CAP);
@@ -205,7 +212,7 @@ export function matchEntry(entry: CatalogueEntry, factory: FactoryInput): MatchR
         : "No press size is declared. A large product needs a press sized to its mould: confirm with a toolmaker.",
     );
   } else if (entry.sizeClass === "medium" && largestClampTonnes !== null && matchedProcesses.includes("injection_moulding")) {
-    gaps.push(`Check mould size against your largest declared press (${largestClampTonnes} tonnes) when you scope the tooling.`);
+    optional.push(`When you scope the tooling, check mould size against your largest declared press (${largestClampTonnes} tonnes).`);
   }
   parts.push({ key: "machines", label: "Machinery evidence", points: machinePoints, max: WEIGHTS.machines, detail: machineDetail });
 
@@ -225,7 +232,7 @@ export function matchEntry(entry: CatalogueEntry, factory: FactoryInput): MatchR
   });
   if (processWithCapacity) reasons.push(`You declared ${processWithCapacity.capacityText} of ${processWithCapacity.label.toLowerCase()} capacity.`);
   else if (factory.factoryWideCapacity) reasons.push(`You declared ${factory.factoryWideCapacity} of factory-wide capacity.`);
-  else gaps.push("Declare your capacity so volumes can be compared with what a UAE buyer might need.");
+  else gaps.push("Declare your capacity so volumes can be compared with what a buyer might need.");
 
   // ---- adjacency to what is already made
   const sibling = factory.products
@@ -250,7 +257,15 @@ export function matchEntry(entry: CatalogueEntry, factory: FactoryInput): MatchR
       ? { level: "medium", why: "Your processes, materials and machinery all line up. Demand, cost and compliance are still unverified, so confidence cannot be higher." }
       : { level: "low", why: "Some of the capability evidence is missing or only partly matches, and demand, cost and compliance are unverified." };
 
-  return { entry, score, level, parts, reasons, matchedProcesses, putsToWork: [], missingProcesses, matchedMaterials: matchedPreferred.concat(matchedPossible), largestClampTonnes, gaps, confidence };
+  const machineListed = (code: ProcessCode) => factory.machines.some((m) => m.processCode === code);
+  const guidance: MatchResult["guidance"] = {
+    requiredProcesses: required.map((code) => ({ code, declared: declaredProcesses.has(code), machineListed: machineListed(code) })),
+    optionalProcesses: helpful.map((code) => ({ code, declared: declaredProcesses.has(code) })),
+    purchasedInputs: entry.purchasedInputs ?? [],
+    missingMachinery: required.filter((c) => declaredProcesses.has(c) && !machineListed(c)),
+    alternativeMaterials,
+  };
+  return { entry, score, level, parts, reasons, matchedProcesses, putsToWork: [], missingProcesses, matchedMaterials: matchedPreferred.concat(matchedPossible), largestClampTonnes, gaps, optional, guidance, confidence };
 }
 
 const EFFORT_RANK = { lighter: 0, moderate: 1, heavier: 2 } as const;

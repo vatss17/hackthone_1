@@ -10,14 +10,18 @@ import { allowedNumbers, isUsable, parseJsonObject, validateExplanation, validat
 export async function runExtraction(provider: AiProvider, text: string): Promise<ExtractionResult> {
   if (text.length > EXTRACTION_MAX_CHARS) throw new AiError("too_large", AI_ERROR_MESSAGES.too_large);
   const answer = await provider.complete({ system: EXTRACTION_SYSTEM, user: extractionUser(text), maxTokens: EXTRACTION_MAX_TOKENS, timeoutMs: AI_TIMEOUT_MS });
-  const result = validateExtraction(parseJsonObject(answer), text);
-  if (result.products.length === 0 && result.rejected.length === 0) throw new AiError("bad_output", AI_ERROR_MESSAGES.bad_output);
+  const parsed = parseJsonObject(answer);
+  if (!parsed) throw new AiError("bad_output", AI_ERROR_MESSAGES.bad_output, { note: "answer was not a JSON object" });
+  const result = validateExtraction(parsed, text);
+  if (result.products.length === 0 && result.rejected.length === 0) throw new AiError("bad_output", AI_ERROR_MESSAGES.bad_output, { note: "no products found in the answer" });
   return result;
 }
 
 export async function runExplanation(provider: AiProvider, payload: unknown): Promise<ExplanationResult> {
   const answer = await provider.complete({ system: EXPLAIN_SYSTEM, user: explainUser(payload), maxTokens: EXPLAIN_MAX_TOKENS, timeoutMs: AI_TIMEOUT_MS });
-  const result = validateExplanation(parseJsonObject(answer), allowedNumbers(payload));
-  if (!isUsable(result.value)) throw new AiError("bad_output", AI_ERROR_MESSAGES.bad_output);
+  const parsed = parseJsonObject(answer);
+  if (!parsed) throw new AiError("bad_output", AI_ERROR_MESSAGES.bad_output, { note: "answer was not a JSON object" });
+  const result = validateExplanation(parsed, allowedNumbers(payload));
+  if (!isUsable(result.value)) throw new AiError("bad_output", AI_ERROR_MESSAGES.bad_output, { note: `nothing usable after checks (${result.dropped.length} items rejected)` });
   return result;
 }

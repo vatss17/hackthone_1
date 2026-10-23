@@ -10,9 +10,43 @@ export type TaskStatus = "not_started" | "in_progress" | "completed" | "needs_re
 export const TASK_STATUSES: TaskStatus[] = ["not_started", "in_progress", "completed", "needs_review"];
 
 export interface TaskState {
-  status: TaskStatus;
+  /** The status the person set by hand. Null when they only wrote a note, so the automatic status keeps applying. */
+  status: TaskStatus | null;
   note: string;
   updatedAt: string;
+}
+
+/**
+ * A screening question's answer, as the manufacturer records it.
+ *   answered        the person has an answer (written in `answer`). This is NOT a finding that the product complies.
+ *   not_applicable  the person says it does not apply, with a note saying why.
+ *   unknown         the person looked and does not know yet. Not resolved.
+ * Source, date and reviewer are typed by the person. The platform verifies none of them.
+ */
+export type AnswerState = "answered" | "not_applicable" | "unknown";
+export const ANSWER_STATES: AnswerState[] = ["answered", "not_applicable", "unknown"];
+
+export interface ScreeningAnswer {
+  state: AnswerState;
+  answer: string;
+  note: string;
+  /** Where the answer comes from: a document, an authority page, an adviser. Free text. */
+  source: string;
+  /** Date of that source, as typed (YYYY-MM-DD). */
+  sourceDate: string;
+  /** Who reviewed it, if anyone, and when. Free text, unverified. */
+  reviewer: string;
+  reviewedOn: string;
+  answeredOn: string;
+  /** True for a tick migrated from an older version: resolved, but no answer was ever recorded. */
+  legacy?: boolean;
+}
+
+/** A person's own sign-off on a document draft. It goes stale when the draft changes afterwards. */
+export interface DocReview {
+  by: string;
+  on: string;
+  fingerprint: string;
 }
 
 /** Document details the person typed. Anything absent falls back to what the platform can prefill. */
@@ -47,6 +81,7 @@ export type ChecklistAnswer = "have" | "need" | "na";
 export interface DocsState {
   details: Partial<DocDetails>;
   checklist: Record<string, ChecklistAnswer>;
+  review: Partial<Record<"invoice" | "packing", DocReview>>;
 }
 
 export type RequestTopic = "hs" | "regulatory" | "cepa" | "freight" | "documents" | "review";

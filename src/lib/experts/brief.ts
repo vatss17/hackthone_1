@@ -17,21 +17,21 @@ export const TOPICS: { id: RequestTopic; label: string; blurb: string; asks: str
     id: "hs",
     label: "HS classification",
     blurb: "Confirm the tariff classification, and with it the duty and origin rules that follow.",
-    asks: ["Which 6-digit HS heading and national tariff line applies to this product?", "What UAE customs duty applies to that line?", "Is there anything about the design or use that could change the classification?"],
+    asks: ["Which 6-digit HS heading and national tariff line applies to this product?", "What destination customs duty applies to that line?", "Is there anything about the design or use that could change the classification?"],
     sections: ["hs"],
   },
   {
     id: "regulatory",
     label: "Regulatory and testing questions",
-    blurb: "Find out which UAE and Indian requirements and tests apply to this product.",
-    asks: ["Which UAE or GCC technical regulations or conformity schemes apply?", "Which tests, certificates or declarations will the importer and authorities expect?", "Are there labelling, language or packaging requirements?"],
+    blurb: "Find out which destination and Indian requirements and tests apply to this product.",
+    asks: ["Which destination technical regulations or conformity schemes apply?", "Which tests, certificates or declarations will the importer and authorities expect?", "Are there labelling, language or packaging requirements?"],
     sections: ["compliance", "testing"],
   },
   {
     id: "cepa",
     label: "CEPA and incentive eligibility",
     blurb: "Check whether the product could qualify for preferential duty or Indian export schemes.",
-    asks: ["Could this product meet the origin rule that applies to its heading under the India–UAE CEPA?", "What records would prove origin, and who issues the certificate?", "Which Indian export schemes could apply, and at what current rates?"],
+    asks: ["Could this product meet the origin rule that applies to its heading under the trade-agreement (CEPA)?", "What records would prove origin, and who issues the certificate?", "Which Indian export schemes could apply, and at what current rates?"],
     sections: ["cepa", "schemes"],
   },
   {
@@ -148,7 +148,7 @@ export function composeBrief(i: BriefInput): { title: string; summary: string } 
   }
   lines.push("WHAT IS NOT VERIFIED");
   lines.push("- Nothing in this brief has been verified against an official source.");
-  lines.push("- Any UAE requirement, duty rate, classification or eligibility mentioned is a question, not a finding.");
+  lines.push("- Any destination requirement, duty rate, classification or eligibility mentioned is a question, not a finding.");
   lines.push("");
   lines.push("This brief contains business information. Share it only with an expert you trust.");
   return { title, summary: lines.join("\n") };
@@ -191,5 +191,8 @@ export function parseRequests(textValue: string | null): ExpertRequest[] {
   }
   return out;
 }
+
+/** Where an edited, unsaved brief is kept, per company, product (or "standalone") and topic. Switching topic or product never discards it. */
+export const draftKey = (organizationId: string, productRef: string | null, topic: string) => `export-enablement:expert-draft:v1:${organizationId}:${productRef ?? "standalone"}:${topic}`;
 
 export const requestsKey = (organizationId: string) => `export-enablement:requests:v1:${organizationId}`;

@@ -98,4 +98,27 @@ export function estimateFactory(estimates: ProcessEstimate[], layout: Layout, go
 /** Plain-language provenance label. */
 export const PROVENANCE_LABEL: Record<Provenance, string> = { reported: "Reported by you", calculated: "Calculated estimate", unavailable: "Not available" };
 
-export const formatQuantity = (q: { quantity: number; unit: string; period: string }) => `${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(q.quantity)} ${q.unit} per ${q.period}`;
+type Translate = (source: string, vars?: Record<string, string | number>) => string;
+
+/** Units and periods as people read them. Codes such as kg and tonnes stay as they are; `t` turns the rest into the reader's language. */
+const PERIOD_WORDS: Record<string, string> = { day: "per day", month: "per month", year: "per year" };
+
+/** "63 tonnes per month". With `t`, the unit word and the period are translated; the number and the codes are not. */
+export const formatQuantity = (q: { quantity: number; unit: string; period: string }, t?: Translate) => {
+  const num = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(q.quantity);
+  if (!t) return `${num} ${q.unit} per ${q.period}`;
+  const unit = q.unit === "pieces" ? t("pieces") : q.unit === "metres" ? t("metres") : q.unit;
+  return `${num} ${unit} ${PERIOD_WORDS[q.period] ? t(PERIOD_WORDS[q.period]) : `per ${q.period}`}`;
+};
+
+/**
+ * Translates the sentences above for display. Fixed ones are looked up as they are; the two that name a process are matched and
+ * translated with the name filled in, so the process name (the manufacturer's own words) is never altered.
+ */
+export function translateEstimateMessage(message: string, t: Translate): string {
+  const a = message.match(/^In a line of sequential stages the slowest stage limits output\. (.+) has the smallest available figure\. Confirm it is your bottleneck, or choose another\.$/);
+  if (a) return t("In a line of sequential stages the slowest stage limits output. {label} has the smallest available figure. Confirm it is your bottleneck, or choose another.", { label: a[1] });
+  const b = message.match(/^(.+) has a smaller figure than the stage you chose\. Check which stage really limits output\.$/);
+  if (b) return t("{label} has a smaller figure than the stage you chose. Check which stage really limits output.", { label: b[1] });
+  return t(message);
+}

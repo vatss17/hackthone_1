@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ScreeningPage } from "@/components/compliance/screening";
 import { requireOrganization } from "@/lib/organization";
 
-export const metadata: Metadata = { title: "Compliance & Testing · Export Enablement Platform" };
+export const metadata: Metadata = { title: "Compliance Engine · Atlas" };
 export const instant = false;
 
 export default async function CompliancePage({ searchParams }: PageProps<"/compliance">) {

@@ -59,9 +59,11 @@ describe("manufacturer authentication (end to end)", { skip: !enabled }, () => {
 
   it("signed-out visitors are redirected from the dashboard and from unknown protected paths", async () => {
     const b = new Browser();
+    // "/" is the public homepage for visitors: same URL, no sign-in wall, and none of the signed-in dashboard.
     const home = await b.get("/");
-    assert.equal(home.status, 307);
-    assert.match(home.location, /\/login$/);
+    assert.equal(home.status, 200);
+    assert.match(home.text, /One intelligent platform/);
+    assert.ok(!/Every export, one view|Sign out/.test(home.text), "dashboard content shown to a visitor");
     const deep = await b.get("/factory");
     assert.equal(deep.status, 307);
     assert.match(deep.location, /\/login\?next=%2Ffactory$/);
@@ -183,7 +185,8 @@ describe("manufacturer authentication (end to end)", { skip: !enabled }, () => {
       ]) {
         const r = await b.get(`/auth/confirm?${q}`);
         assert.equal(r.status, 307, q);
-        assert.match(r.location, /\/login\?error=confirmation_failed$/, q);
+        // Recovery is now a supported link type, so a recovery link carrying a signup token is rejected as a failed RESET link: still no session.
+        assert.match(r.location, q.includes("type=recovery") ? /\/login\?error=reset_failed$/ : /\/login\?error=confirmation_failed$/, q);
         assert.equal(b.hasAuthCookie(), false, `session started by: ${q}`);
       }
     });
@@ -246,7 +249,7 @@ describe("manufacturer authentication (end to end)", { skip: !enabled }, () => {
       for (let i = 0; i < 3; i++) {
         const home = await b.get("/");
         assert.equal(home.status, 200);
-        assert.match(home.text, /Welcome/);
+        assert.match(home.text, /Every export, one view/);
         assert.ok(home.text.includes(confirmed.email));
       }
     });
@@ -265,7 +268,11 @@ describe("manufacturer authentication (end to end)", { skip: !enabled }, () => {
       assert.match(out.location, /\/login\?notice=signed_out$/);
       assert.equal(b.hasAuthCookie(), false);
       const home = await b.get("/");
-      assert.equal(home.status, 307);
+      assert.equal(home.status, 200);
+      assert.match(home.text, /One intelligent platform/, "after sign out, / shows the public homepage");
+      assert.ok(!home.text.includes(confirmed.email) && !/Every export, one view/.test(home.text), "dashboard still reachable after sign out");
+      const protectedPage = await b.get("/workspace");
+      assert.equal(protectedPage.status, 307);
       const login = await b.get("/login?notice=signed_out");
       assert.match(login.text, /You have been signed out\./);
     });
@@ -310,8 +317,12 @@ describe("manufacturer authentication (end to end)", { skip: !enabled }, () => {
       const g = new Browser();
       g.jar.set("sb-bylxvgtxxaghmceutrjq-auth-token", "base64-not-a-real-session");
       const r = await g.get("/");
-      assert.equal(r.status, 307);
-      assert.match(r.location, /\/login/);
+      assert.equal(r.status, 200);
+      assert.match(r.text, /One intelligent platform/);
+      assert.ok(!/Every export, one view|Sign out/.test(r.text), "a garbage cookie reached the dashboard");
+      const deep = await g.get("/workspace");
+      assert.equal(deep.status, 307);
+      assert.match(deep.location, /\/login/);
     });
   });
 });

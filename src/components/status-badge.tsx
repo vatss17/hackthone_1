@@ -1,4 +1,30 @@
+"use client";
+
+import { BadgeCheck, CircleDashed, CircleHelp, FileText, HardDrive, Hand, Lightbulb, MinusCircle, Scale, ShieldCheck, Sparkles, TriangleAlert, WifiOff, type LucideIcon } from "lucide-react";
+import { useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
+
+/** Each status has an icon as well as a label, so meaning never rests on colour alone. */
+const ICONS: Record<string, LucideIcon> = {
+  verified: BadgeCheck,
+  secondary: FileText,
+  user: FileText,
+  estimate: Scale,
+  ai: Sparkles,
+  inferred: Lightbulb,
+  assumption: CircleHelp,
+  quoted: FileText,
+  reported: BadgeCheck,
+  unknown: TriangleAlert,
+  expert: ShieldCheck,
+  missing: MinusCircle,
+  demo: CircleDashed,
+  planned: CircleDashed,
+  off: CircleDashed,
+  manual: Hand,
+  local: HardDrive,
+  nodata: WifiOff,
+};
 
 /**
  * Evidence / status labels. Regulatory, tariff and financial information
@@ -18,7 +44,11 @@ export type StatusKind =
   | "expert"
   | "missing"
   | "demo"
-  | "planned";
+  | "planned"
+  | "off"
+  | "manual"
+  | "local"
+  | "nodata";
 
 const styles: Record<StatusKind, { label: string; className: string }> = {
   verified: {
@@ -85,6 +115,10 @@ const styles: Record<StatusKind, { label: string; className: string }> = {
     className:
       "border-dashed bg-transparent text-amber-text border-amber",
   },
+  off: { label: "Not switched on", className: "bg-(--status-planned-bg) text-(--status-planned-fg) border-(--status-planned-border)" },
+  manual: { label: "Manual sharing", className: "bg-(--status-user-bg) text-(--status-user-fg) border-(--status-user-border)" },
+  local: { label: "This device only", className: "bg-(--status-user-bg) text-(--status-user-fg) border-(--status-user-border)" },
+  nodata: { label: "Live data unavailable", className: "bg-(--status-planned-bg) text-(--status-planned-fg) border-(--status-planned-border)" },
   planned: {
     label: "Planned",
     className:
@@ -99,16 +133,19 @@ export function StatusBadge({
   kind: StatusKind;
   className?: string;
 }) {
+  const t = useT();
   const s = styles[kind];
+  const Icon = ICONS[kind] ?? CircleDashed;
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center whitespace-nowrap rounded-sm border px-1.5 text-xs font-medium",
+        "inline-flex h-[22px] items-center gap-1 whitespace-nowrap rounded border px-1.5 text-xs font-medium",
         s.className,
         className,
       )}
     >
-      {s.label}
+      <Icon aria-hidden className="size-3 shrink-0" />
+      {t(s.label)}
     </span>
   );
 }

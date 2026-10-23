@@ -47,7 +47,7 @@ export interface CandidateResult {
   none: string;
 }
 
-export const CONFIRM_TEXT = "Unverified. These are 4-digit starting points only. The 8-digit HSN used on Indian export documents, and the UAE import code, must be confirmed with your customs broker or the authority.";
+export const CONFIRM_TEXT = "Unverified. These are 4-digit starting points only. The 8-digit HSN used on Indian export documents, and the destination import code, must be confirmed with your customs broker or the authority.";
 
 const words = (s: string) => ` ${s.toLowerCase().replace(/[^a-z0-9]+/g, " ")} `;
 

@@ -3,7 +3,8 @@
 // compliance claims, statistics or HS codes.
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { AiError, DEFAULT_MODEL, ENDPOINT, aiStatus, createProvider, resetLimits, withinLimit } from "../../src/lib/ai/provider.ts";
+import { failureLine, redact } from "../../src/lib/ai/diagnostics.ts";
+import { AiError, AI_ERROR_MESSAGES, classifyHttp, DEFAULT_GEMINI_MODEL, DEFAULT_MODEL, ENDPOINT, GEMINI_ENDPOINT_BASE, GEMINI_REASONING_HEADROOM, aiStatus, createProvider, resetLimits, withinLimit } from "../../src/lib/ai/provider.ts";
 import { FORBIDDEN, allowedNumbers, numbersIn, parseJsonObject, validateExplanation, validateExtraction } from "../../src/lib/ai/schemas.ts";
 import { runExplanation, runExtraction } from "../../src/lib/ai/run.ts";
 import { EXPLAIN_SYSTEM, EXTRACTION_SYSTEM, explainUser, extractionUser } from "../../src/lib/ai/prompts.ts";
@@ -63,7 +64,7 @@ describe("the provider adapter (mocked network)", () => {
   it("maps failures to safe error codes and never leaks the key or the response", async () => {
     const cases = [
       [async () => new Response("secret body sk-test-NOT-A-REAL-KEY", { status: 429 }), "rate_limited"],
-      [async () => new Response("secret body", { status: 500 }), "provider_error"],
+      [async () => new Response("secret body", { status: 500 }), "unavailable"],
       [async () => new Response("not json", { status: 200 }), "provider_error"],
       [async () => new Response(JSON.stringify({ content: [] }), { status: 200 }), "provider_error"],
       [async () => { throw Object.assign(new Error("boom sk-test-NOT-A-REAL-KEY"), { name: "TimeoutError" }); }, "timeout"],
@@ -229,6 +230,148 @@ describe("prompts", () => {
   it("wrap user data in markers so it cannot pass as instructions", () => {
     assert.match(extractionUser("hello"), /<<<CATALOGUE\nhello\nCATALOGUE>>>/);
     assert.match(explainUser({ a: 1 }), /<<<FACTS\n\{"a":1\}\nFACTS>>>/);
+  });
+});
+
+describe("the Gemini adapter (mocked network)", () => {
+  const G = { AI_PROVIDER: "gemini", GEMINI_API_KEY: "g-test-NOT-A-REAL-KEY", AI_DATA_APPROVED: "1" };
+  const req = { system: "S", user: "U", maxTokens: 99, timeoutMs: 5000 };
+  const ok = (text) => async (url, init) => {
+    ok.last = { url, init };
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] }), { status: 200 });
+  };
+  it("needs all three authorisations, with the Gemini key and not another provider's", () => {
+    for (const drop of ["AI_PROVIDER", "GEMINI_API_KEY", "AI_DATA_APPROVED"]) {
+      const env = { ...G };
+      delete env[drop];
+      assert.equal(aiStatus(env).configured, false, drop);
+      assert.equal(createProvider(env), null, drop);
+    }
+    assert.equal(aiStatus({ ...G, GEMINI_API_KEY: "", ANTHROPIC_API_KEY: "sk-x" }).configured, false);
+    assert.equal(aiStatus(G).configured, true);
+    assert.equal(aiStatus(G).provider, "gemini");
+    assert.equal(aiStatus(G).model, DEFAULT_GEMINI_MODEL);
+  });
+  it("calls the fixed Google endpoint with the key in a header, never in the URL or body", async () => {
+    assert.equal(await createProvider(G, ok("hello")).complete(req), "hello");
+    const { url, init } = ok.last;
+    assert.equal(url, `${GEMINI_ENDPOINT_BASE}/${DEFAULT_GEMINI_MODEL}:generateContent`);
+    assert.equal(init.headers["x-goog-api-key"], G.GEMINI_API_KEY);
+    assert.ok(!url.includes(G.GEMINI_API_KEY) && !init.body.includes(G.GEMINI_API_KEY));
+    const body = JSON.parse(init.body);
+    assert.equal(body.generationConfig.maxOutputTokens, 99 + GEMINI_REASONING_HEADROOM);
+    assert.equal(body.generationConfig.temperature, 0);
+    assert.equal(body.contents[0].parts[0].text, "U");
+    assert.ok(init.signal instanceof AbortSignal);
+  });
+  it("refuses a model name that could alter the URL", () => {
+    for (const bad of ["x/../../v1", "a?key=1", "m odel", "a#b"]) assert.equal(aiStatus({ ...G, AI_MODEL: bad }).configured, false, bad);
+    assert.equal(aiStatus({ ...G, AI_MODEL: "gemini-2.5-pro" }).configured, true);
+  });
+  it("maps failures to safe codes without leaking the key", async () => {
+    const cases = [
+      [async () => new Response("secret g-test-NOT-A-REAL-KEY", { status: 429 }), "rate_limited"],
+      [async () => new Response("secret", { status: 403 }), "invalid_config"],
+      [async () => new Response(JSON.stringify({ candidates: [] }), { status: 200 }), "provider_error"],
+      [async () => { throw Object.assign(new Error("boom g-test-NOT-A-REAL-KEY"), { name: "TimeoutError" }); }, "timeout"],
+    ];
+    for (const [f, code] of cases) {
+      await assert.rejects(() => createProvider(G, f).complete(req), (e) => e instanceof AiError && e.code === code && !e.message.includes("g-test-NOT"));
+    }
+  });
+});
+
+describe("failure categories and safe diagnostics", () => {
+  const KEY = "AIzaSyFAKE-KEY-0123456789abcdefghijklmnop";
+  const PROMPT = "Plastic containers by SECRET Co, 750 ml, PP";
+  const gbody = (status, reason, http) => ({ error: { code: http, status, message: `bad ${KEY} while reading ${PROMPT}`, details: reason ? [{ "@type": "type.googleapis.com/google.rpc.ErrorInfo", reason }] : [] } });
+  const G = { AI_PROVIDER: "gemini", GEMINI_API_KEY: KEY, AI_DATA_APPROVED: "1" };
+  const req = { system: "S", user: PROMPT, maxTokens: 50, timeoutMs: 5000 };
+  const reply = (http, body) => async () => new Response(JSON.stringify(body), { status: http });
+
+  it("maps Google error responses to categories a person can act on", () => {
+    const cases = [
+      [400, gbody("INVALID_ARGUMENT", "API_KEY_INVALID", 400), "invalid_config"],
+      [403, gbody("PERMISSION_DENIED", null, 403), "invalid_config"],
+      [401, gbody("UNAUTHENTICATED", null, 401), "invalid_config"],
+      [404, gbody("NOT_FOUND", null, 404), "model_unavailable"],
+      [429, gbody("RESOURCE_EXHAUSTED", null, 429), "rate_limited"],
+      [503, gbody("UNAVAILABLE", null, 503), "unavailable"],
+      [500, gbody("INTERNAL", null, 500), "unavailable"],
+      [400, gbody("INVALID_ARGUMENT", null, 400), "bad_request"],
+      [504, gbody("DEADLINE_EXCEEDED", null, 504), "timeout"],
+      [418, {}, "provider_error"],
+    ];
+    for (const [http, body, code] of cases) assert.equal(classifyHttp(http, body).code, code, `${http} ${JSON.stringify(body.error?.status)}`);
+  });
+  it("keeps only fixed-format fields from the provider: never the message, the key or the prompt", () => {
+    const e = classifyHttp(400, gbody("INVALID_ARGUMENT", "API_KEY_INVALID", 400));
+    assert.deepEqual(e.detail, { http: 400, status: "INVALID_ARGUMENT", reason: "API_KEY_INVALID" });
+    const all = JSON.stringify([e.message, e.detail]);
+    assert.ok(!all.includes(KEY) && !all.includes("SECRET"));
+  });
+  it("ignores a status or reason that is not a plain token, so nothing can be smuggled into the log", () => {
+    const e = classifyHttp(400, { error: { status: "x y; rm -rf", details: [{ reason: "has spaces and secrets" }] } });
+    assert.equal(e.detail.status, undefined);
+    assert.equal(e.detail.reason, undefined);
+  });
+  it("gives every category its own plain message, and none mention technical internals", () => {
+    for (const c of ["invalid_config", "model_unavailable", "rate_limited", "unavailable", "bad_output", "timeout", "blocked", "bad_request"]) {
+      assert.ok(AI_ERROR_MESSAGES[c].length > 30, c);
+      assert.ok(!/http|json|schema|token|header|stack/i.test(AI_ERROR_MESSAGES[c]), c);
+    }
+    assert.equal(new Set(Object.values(AI_ERROR_MESSAGES)).size, Object.keys(AI_ERROR_MESSAGES).length, "no two categories share a message");
+  });
+  it("the Gemini adapter reports the right category and never exposes the key or the prompt", async () => {
+    for (const [http, body, code] of [[403, gbody("PERMISSION_DENIED", null, 403), "invalid_config"], [404, gbody("NOT_FOUND", null, 404), "model_unavailable"], [429, gbody("RESOURCE_EXHAUSTED", null, 429), "rate_limited"]]) {
+      await assert.rejects(() => createProvider(G, reply(http, body)).complete(req), (e) => {
+        assert.equal(e.code, code);
+        assert.ok(!JSON.stringify([e.message, e.detail, failureLine({ op: "explain", provider: "gemini", model: "m", ms: 5 }, e).line]).includes(KEY));
+        assert.ok(!e.message.includes("SECRET") && !failureLine({ op: "explain", provider: "gemini", model: "m", ms: 5 }, e).line.includes("SECRET"));
+        return true;
+      });
+    }
+  });
+  it("tells blocked, cut-off and empty Gemini answers apart", async () => {
+    const run = (body) => createProvider(G, reply(200, body)).complete(req);
+    await assert.rejects(() => run({ promptFeedback: { blockReason: "SAFETY" } }), (e) => e.code === "blocked" && e.detail.reason === "SAFETY");
+    await assert.rejects(() => run({ candidates: [{ finishReason: "SAFETY" }] }), (e) => e.code === "blocked" && e.detail.finishReason === "SAFETY");
+    await assert.rejects(() => run({ candidates: [{ finishReason: "MAX_TOKENS", content: { parts: [{ text: '{"headline":"cut' }] } }] }), (e) => e.code === "bad_output" && e.detail.finishReason === "MAX_TOKENS");
+    await assert.rejects(() => run({ candidates: [{ finishReason: "MAX_TOKENS" }] }), (e) => e.code === "bad_output");
+    await assert.rejects(() => run({ candidates: [{ finishReason: "STOP", content: { parts: [] } }] }), (e) => e.code === "provider_error" && /empty/.test(e.detail.note));
+    assert.equal(await run({ candidates: [{ finishReason: "STOP", content: { parts: [{ text: "ok" }] } }] }), "ok");
+  });
+  it("uses a current default model, and a retired-model answer is a genuine model_unavailable, not a misclassification", async () => {
+    assert.equal(DEFAULT_GEMINI_MODEL, "gemini-3.8-flash");
+    const retired = { error: { code: 404, status: "NOT_FOUND", message: "This model models/gemini-2.5-flash is no longer available to new users." } };
+    await assert.rejects(() => createProvider({ ...G, AI_MODEL: "gemini-2.5-flash" }, reply(404, retired)).complete(req), (e) => e.code === "model_unavailable" && e.detail.http === 404 && e.detail.status === "NOT_FOUND" && /retired/.test(e.message));
+  });
+  it("gives reasoning models output headroom but keeps the older models at the exact limit", async () => {
+    const limits = {};
+    for (const m of ["gemini-3.8-flash", "gemini-2.5-flash"]) {
+      await createProvider({ ...G, AI_MODEL: m }, async (u, init) => ((limits[m] = JSON.parse(init.body).generationConfig.maxOutputTokens), new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "{}" }] } }] }), { status: 200 }))).complete(req);
+    }
+    assert.equal(limits["gemini-3.8-flash"], 50 + GEMINI_REASONING_HEADROOM);
+    assert.equal(limits["gemini-2.5-flash"], 50);
+  });
+  it("asks Gemini for JSON output", async () => {
+    let body;
+    await createProvider(G, async (u, init) => ((body = JSON.parse(init.body)), new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "{}" }] } }] }), { status: 200 }))).complete(req);
+    assert.equal(body.generationConfig.responseMimeType, "application/json");
+  });
+  it("a validation failure says why in words, without quoting the answer", async () => {
+    const { runExplanation } = await import("../../src/lib/ai/run.ts");
+    const asProvider = (text) => ({ name: "gemini", model: "m", complete: async () => text });
+    await assert.rejects(() => runExplanation(asProvider("sorry, I cannot do that SECRET"), {}), (e) => e.code === "bad_output" && /not a JSON object/.test(e.detail.note) && !JSON.stringify(e.detail).includes("SECRET"));
+    await assert.rejects(() => runExplanation(asProvider('{"headline":"This product is approved and certified"}'), {}), (e) => e.code === "bad_output" && /nothing usable/.test(e.detail.note));
+  });
+  it("log lines are fixed-format: errors from our own code are labelled and key-like text is removed", () => {
+    const own = failureLine({ op: "explain", provider: "gemini", model: "gemini-2.5-flash", ms: 7 }, new TypeError(`bad header value ${KEY}`));
+    assert.equal(own.code, "unexpected");
+    assert.ok(!own.line.includes(KEY) && /unexpected TypeError/.test(own.line) && /our code/.test(own.line));
+    const prov = failureLine({ op: "explain", provider: "gemini", model: "gemini-2.5-flash", ms: 7 }, classifyHttp(404, gbody("NOT_FOUND", null, 404)));
+    assert.match(prov.line, /^\[ai\] explain failed on gemini\/gemini-2\.5-flash after 7ms: model_unavailable \(http=404 status=NOT_FOUND\)$/);
+    assert.equal(redact(`Bearer abc.def and ${KEY}`), "<redacted> and <redacted>");
   });
 });
 

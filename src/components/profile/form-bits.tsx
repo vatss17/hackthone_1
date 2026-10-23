@@ -3,20 +3,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Notice } from "@/components/auth/notice";
 import { ERROR_MESSAGES, NOTICE_MESSAGES } from "@/lib/capability-validation";
+import { T } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
 /** Small server-rendered building blocks for the manufacturing-profile forms (no client JS). */
 
 const pick = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
 
-/** Shows a fixed message for ?notice= / ?error= codes. Nothing from the URL is ever printed. */
+/** Shows a fixed message for ?notice= / ?error= codes. Nothing from the URL is ever printed. The message is translated as it is shown. */
 export function Flash({ params }: { params: Record<string, string | string[] | undefined> }) {
   const notice = NOTICE_MESSAGES[pick(params.notice) ?? ""];
   const error = (ERROR_MESSAGES as Record<string, string>)[pick(params.error) ?? ""];
   if (!notice && !error) return null;
   return (
     <div className="mt-6">
-      {error ? <Notice tone="error">{error}</Notice> : <Notice tone="success">{notice}</Notice>}
+      {error ? (
+        <Notice tone="error">
+          <T>{error}</T>
+        </Notice>
+      ) : (
+        <Notice tone="success">
+          <T>{notice}</T>
+        </Notice>
+      )}
     </div>
   );
 }
@@ -72,7 +81,7 @@ export function Select({
         required={required}
         defaultValue={defaultValue ?? ""}
         aria-describedby={hint ? `${id}-hint` : undefined}
-        className="h-10 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 md:h-9 md:text-sm"
+        className="h-11 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 md:h-10 md:text-sm"
       >
         {placeholder !== undefined && <option value="">{placeholder}</option>}
         {options.map((o) => (
@@ -132,14 +141,14 @@ export function Disclosure({
       >
         {summary}
       </summary>
-      <div className="mt-3 rounded-md border bg-card p-4 sm:p-5">{children}</div>
+      <div className="mt-3 rounded-lg border bg-card p-4 sm:p-5">{children}</div>
     </details>
   );
 }
 
 export function SubmitButton({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "outline" | "destructive" }) {
   return (
-    <Button type="submit" variant={variant} size="lg" className="h-10 md:h-9">
+    <Button type="submit" variant={variant} size="lg" className="h-11 md:h-10">
       {children}
     </Button>
   );

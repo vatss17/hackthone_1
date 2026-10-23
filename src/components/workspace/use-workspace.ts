@@ -5,7 +5,7 @@ import { EVENT, read, subscribe, useAssessment, write } from "@/components/lande
 import { documentStatus, type DocContext } from "@/lib/documents/generate";
 import { parseRequests, requestsKey } from "@/lib/experts/brief";
 import { buildRoadmap } from "@/lib/roadmap/engine";
-import type { Assessment } from "@/lib/landed-cost/assessment";
+import { applyTaskPatch, type Assessment } from "@/lib/landed-cost/assessment";
 import type { Inputs } from "@/lib/landed-cost/types";
 import type { ExpertRequest, TaskStatus, WorkspaceFacts } from "@/lib/workspace/types";
 
@@ -24,7 +24,9 @@ export function useRequests(scope: string) {
     },
     [key],
   );
-  return { requests, save };
+  /** Changes the LATEST saved list, not the one this component last rendered, so two quick edits never overwrite each other. */
+  const mutate = useCallback((fn: (current: ExpertRequest[]) => ExpertRequest[]) => save(fn(parseRequests(read(key)))), [key, save]);
+  return { requests, save, mutate };
 }
 
 /**
@@ -34,7 +36,7 @@ export function useRequests(scope: string) {
  */
 export function useWorkspace({ scope, facts, defaults }: { scope: string; facts: WorkspaceFacts; defaults: Inputs }) {
   const a = useAssessment({ scope, assessmentRef: facts.ref, defaults });
-  const { requests, save: saveRequests } = useRequests(scope);
+  const { requests, save: saveRequests, mutate: mutateRequests } = useRequests(scope);
   const { assessment } = a;
 
   const ctx: DocContext = useMemo(
@@ -51,16 +53,10 @@ export function useWorkspace({ scope, facts, defaults }: { scope: string; facts:
   const relevant = useMemo(() => requests.filter((r) => r.productRef === null || r.productRef === (facts.standalone ? null : facts.ref)), [requests, facts]);
   const roadmap = useMemo(() => buildRoadmap({ facts, assessment, docs, requests: relevant }), [facts, assessment, docs, relevant]);
 
-  const setTask = useCallback(
-    (id: string, status: TaskStatus | null, note?: string) =>
-      a.update((cur: Assessment) => {
-        const tasks = { ...cur.tasks };
-        if (status === null) delete tasks[id];
-        else tasks[id] = { status, note: note ?? tasks[id]?.note ?? "", updatedAt: new Date().toISOString() };
-        return { ...cur, tasks };
-      }),
-    [a],
-  );
+  const patchTask = useCallback((id: string, patch: { status?: TaskStatus | null; note?: string }) => a.update((cur: Assessment) => applyTaskPatch(cur, id, patch, new Date().toISOString())), [a]);
+  const setTaskStatus = useCallback((id: string, status: TaskStatus | null) => patchTask(id, { status }), [patchTask]);
+  const setTaskNote = useCallback((id: string, note: string) => patchTask(id, { note }), [patchTask]);
+  const setFocus = useCallback((id: string | null) => a.update((cur: Assessment) => ({ ...cur, focusTaskId: id })), [a]);
 
-  return { ...a, ctx, docs, roadmap, requests, relevantRequests: relevant, saveRequests, setTask };
+  return { ...a, ctx, docs, roadmap, requests, relevantRequests: relevant, saveRequests, mutateRequests, setTaskStatus, setTaskNote, setFocus };
 }

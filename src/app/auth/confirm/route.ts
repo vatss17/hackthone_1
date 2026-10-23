@@ -4,9 +4,8 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/safe-redirect";
 
-// Only the email-confirmation link types this app sends. Password recovery and
-// invitations will get their own handlers when those features exist.
-const ALLOWED_TYPES: EmailOtpType[] = ["signup", "email"];
+// The link types this app sends: email confirmation and password recovery. Invitations will get their own handler when they exist.
+const ALLOWED_TYPES: EmailOtpType[] = ["signup", "email", "recovery"];
 
 /**
  * Email confirmation endpoint (linked from the Supabase confirmation email).
@@ -36,6 +35,8 @@ export async function GET(request: NextRequest) {
     failed = Boolean(error);
   }
 
-  if (failed) redirect("/login?error=confirmation_failed");
-  redirect(next);
+  // A recovery link always goes to the reset page, whatever `next` says.
+  const recovery = type === "recovery" || next === "/reset-password";
+  if (failed) redirect(recovery ? "/login?error=reset_failed" : "/login?error=confirmation_failed");
+  redirect(recovery ? "/reset-password" : next);
 }

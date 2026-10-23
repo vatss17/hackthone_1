@@ -6,7 +6,7 @@ import type { CatalogueEntry } from "./types.ts";
  * HAND-WRITTEN, GENERAL KNOWLEDGE. Not derived from trade data, not checked against any
  * regulation, not a market study. It describes what each kind of product typically needs
  * to make, and which questions a producer should ask before exporting it. A later version
- * can add verified UAE trade data and AI-assisted enrichment WITHOUT changing the engine:
+ * can add verified destination trade data and AI-assisted enrichment WITHOUT changing the engine:
  * the engine only reads this shape.
  *
  * Rules for editing this file:
@@ -225,7 +225,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     validations: ["Food-contact evidence for materials and colourants", "Dishwasher durability", "Stain and odour checks"],
     whyUae: [
       "Catering, canteens and hospitality operate at scale and buy durable ware (hypothesis to test).",
-      "Rules on single-use plastics have been introduced in parts of the UAE; reusable, durable positioning may be an angle, but applicability of any rule must be checked against official sources.",
+      "Rules on single-use plastics have been introduced in parts of the destination market; reusable, durable positioning may be an angle, but applicability of any rule must be checked against official sources.",
     ],
     demandSignal: "moderate",
     industries: [
@@ -346,7 +346,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     tooling: ["Very large pallet moulds (needs a large press)", "Reinforcement design and testing"],
     validations: ["Static, dynamic and racking load tests", "Impact at temperature", "Hygiene evidence for food or pharma use"],
     whyUae: [
-      "The UAE is a logistics and re-export hub with large warehouse operations (hypothesis to test).",
+      "Some destination markets act as logistics and re-export hubs with large warehouse operations (hypothesis to test).",
       "Pallets are heavy and bulky, so freight cost is likely to dominate viability (to be assessed).",
     ],
     demandSignal: "moderate",
@@ -393,11 +393,12 @@ export const CATALOGUE: CatalogueEntry[] = [
     processes: { requiredAll: ["thermoforming"], helpful: ["extrusion"] },
     materials: { preferred: ["PET", "PP", "PS"], possible: ["HIPS", "PVC"] },
     sizeClass: "medium",
-    tooling: ["Thermoforming machine and moulds", "Sheet extrusion or sheet sourcing", "Trimming and stacking line"],
+    tooling: ["Forming moulds for each tray and clamshell size", "Trimming and stacking line"],
+    purchasedInputs: ["Plastic sheet (PET, PP or PS), bought in unless you extrude your own"],
     validations: ["Food-contact evidence", "Clarity and strength checks", "Seal and lid-fit tests"],
     whyUae: [
       "Fresh food, bakery and retail packaging use formed trays and clamshells (hypothesis to test).",
-      "Requires a process you have not declared. Sheet extrusion could be a partial start (to be assessed).",
+      "Sheet can be bought in, so thermoforming is the process that matters most (to be assessed).",
     ],
     demandSignal: "broad",
     industries: [
@@ -437,7 +438,7 @@ export const CATALOGUE: CatalogueEntry[] = [
 export const CATALOGUE_BY_ID: Record<string, CatalogueEntry> = Object.fromEntries(CATALOGUE.map((e) => [e.id, e]));
 
 /**
- * Checks that apply to almost any plastic product exported to the UAE. They are listed as topics
+ * Checks that apply to almost any plastic product exported to the destination market. They are listed as topics
  * to confirm, never as findings. Used on every product exploration page.
  */
 export const COMMON_CONSIDERATIONS: { topic: string; note: string }[] = [
@@ -446,12 +447,12 @@ export const COMMON_CONSIDERATIONS: { topic: string; note: string }[] = [
     note: "Any HS code you have entered is your own claim and is not verified. Classification decides duty, reporting and some rules, so it must be confirmed before costing is relied on.",
   },
   {
-    topic: "UAE and GCC technical requirements",
+    topic: "Destination technical requirements",
     note: "Whether a technical regulation or conformity scheme applies to this product has not been assessed. This is the first thing a compliance review would settle.",
   },
   {
     topic: "Labelling, language and marking",
-    note: "Labelling, language (including Arabic) and origin-marking expectations for this product have not been checked.",
+    note: "Labelling, language (including the destination's official language) and origin-marking expectations for this product have not been checked.",
   },
   {
     topic: "Importer and buyer requirements",

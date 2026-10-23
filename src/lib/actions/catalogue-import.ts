@@ -79,7 +79,11 @@ export async function importProducts(payload: string): Promise<ImportResult> {
     const code = text(raw.internalCode, { max: LIMITS.code });
     const weight = raw.unitWeightG == null ? ({ ok: true, value: null } as const) : positiveNumber(String(raw.unitWeightG), { max: 999999999 });
     const hs = typeof raw.hsCode === "string" && raw.hsCode ? raw.hsCode.replace(/\s/g, "") : null;
-    if (!name.ok || !description.ok || !category.ok || !use.ok || !code.ok || !weight.ok || (hs !== null && !HS.test(hs))) {
+    if (!weight.ok) {
+      failed.push({ name: label, reason: "The unit weight must be a positive number of grams." });
+      continue;
+    }
+    if (!name.ok || !description.ok || !category.ok || !use.ok || !code.ok || (hs !== null && !HS.test(hs))) {
       failed.push({ name: label, reason: REASONS.invalid });
       continue;
     }

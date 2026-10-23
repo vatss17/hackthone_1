@@ -78,11 +78,11 @@ describe("factory registration and management (end to end)", { skip: !enabled },
     }
   });
 
-  it("a company with no factory is guided to factory registration, and the factory list does not redirect (no loop)", async () => {
+  it("a company with no factory and no products is asked where to start (Path A or B), and the factory list does not redirect (no loop)", async () => {
     const guided = await sessions.c.browse("/");
     assert.equal(guided.looped, false, JSON.stringify(guided.trail));
-    assert.equal(guided.finalPath, "/factories/new", JSON.stringify(guided.trail));
-    assert.match(guided.text, /Register your first factory/);
+    assert.equal(guided.finalPath, "/start", JSON.stringify(guided.trail));
+    assert.match(guided.text, /What would you like to do first/);
 
     const list = await sessions.c.get("/factories");
     assert.equal(list.status, 200, "the list page must stay reachable with zero factories");
@@ -284,7 +284,7 @@ describe("factory registration and management (end to end)", { skip: !enabled },
     assert.equal((await factoriesOf(orgC)).filter((f) => !f.archived_at).length, 0);
     const dash = await sessions.c.browse("/");
     assert.equal(dash.looped, false, `redirect loop: ${JSON.stringify(dash.trail)}`);
-    assert.equal(dash.finalPath, "/factories/new", JSON.stringify(dash.trail));
+    assert.equal(dash.finalPath, "/start", JSON.stringify(dash.trail));
     const list = await sessions.c.get("/factories");
     assert.equal(list.status, 200);
     assert.match(list.text, /All your factories are archived/);
@@ -309,7 +309,7 @@ describe("factory registration and management (end to end)", { skip: !enabled },
 
   it("the navigation links to the factory page and the data is isolated per company", async () => {
     const list = await sessions.c.get("/factories");
-    assert.match(list.text, /<a[^>]*href="\/factories"[^>]*>My Factory/);
+    assert.match(list.text, /<a[^>]*href="\/factories"[^>]*>(?:<[^>]+>)*My factory/, "the navigation link to the factory page");
     const b = await sessions.b.get("/factories");
     assert.ok(!b.text.includes(fac("replacement")) && !b.text.includes(fac("two")));
     assert.ok(b.text.includes(fac("one")), "company B cannot see its own factory");

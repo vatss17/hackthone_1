@@ -82,7 +82,7 @@ export function specValue(valueRaw: unknown, unitRaw: unknown): Parsed<{ text: s
   return { ok: true, value: { text: v, number: null, unit: null } };
 }
 
-export type ErrorCode = "duplicate" | "invalid" | "not_owner" | "frozen" | "failed";
+export type ErrorCode = "duplicate" | "invalid" | "not_owner" | "frozen" | "failed" | "restore_unavailable" | "restore_duplicate" | "restore_missing";
 
 /** Maps a database failure to a safe code. Raw database text is never shown to people. */
 export function errorCodeFor(error: { code?: string | null; message?: string | null }): ErrorCode {
@@ -100,6 +100,9 @@ export const ERROR_MESSAGES: Record<ErrorCode | "check_values", string> = {
   not_owner: "Only company owners can change the manufacturing profile.",
   frozen: "That record belongs to something archived and can no longer be changed.",
   failed: "We could not save that right now. Nothing was changed. Try again in a moment.",
+  restore_unavailable: "Restoring an archived product is not switched on for this database yet. The product and everything saved with it are untouched.",
+  restore_duplicate: "An active product already has the same name or code. Rename that one, then restore this one.",
+  restore_missing: "That product could not be found, or it is not archived.",
 };
 
 export const NOTICE_MESSAGES: Record<string, string> = {
@@ -118,6 +121,7 @@ export const NOTICE_MESSAGES: Record<string, string> = {
   hs_saved: "Your product code was saved exactly as you entered it. It is unverified.",
   hs_cleared: "Your product code was removed.",
   product_archived: "Product archived. It is no longer in your active list.",
+  product_restored: "Product restored. It is back in your catalogue with its specifications, factory links and saved work.",
   spec_added: "Specification added.",
   spec_removed: "Specification removed.",
   link_added: "Factory linked to this product.",

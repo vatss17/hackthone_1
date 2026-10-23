@@ -2,14 +2,14 @@
 
 AI is **off** until you do every step. Nothing is sent anywhere before step 5. The deterministic features never use AI.
 
-1. **Decide:** provider (Anthropic is the one built), a small monthly spending limit, and that sending the data below to that provider is acceptable (hosting region and data-processing terms). Use **synthetic demo data only** for the first evaluations.
+1. **Decide:** provider (Gemini and Anthropic are built), a small monthly spending limit, and that sending the data below to that provider is acceptable (hosting region and data-processing terms). Use **synthetic demo data only** for the first evaluations.
 2. **Create a dedicated key** in your own Anthropic console, for this app only, with a low spend limit. Do not reuse a key from another tool.
 3. **Add to `.env.local`** (git-ignored; never commit, never prefix with `NEXT_PUBLIC_`):
    ```
-   AI_PROVIDER=anthropic
-   ANTHROPIC_API_KEY=<your key>
+   AI_PROVIDER=gemini                # or anthropic
+   GEMINI_API_KEY=<your key>         # or ANTHROPIC_API_KEY for anthropic
    AI_DATA_APPROVED=1
-   # optional: AI_MODEL=claude-sonnet-5-5   AI_MAX_CALLS_PER_HOUR=20
+   # optional: AI_MODEL=<a current model; check with npm run ai:readiness -- --check-provider --list-models>   AI_MAX_CALLS_PER_HOUR=20
    ```
 4. **Check without a network call:** `npm run ai:readiness`, then restart `npm run dev`.
 5. **First live test (a few cents):** sign in as the demo user, open Import, load the demo catalogue, tick the consent box and use AI reading once; then open a product and request one AI explanation. Review the output; nothing is saved without you.

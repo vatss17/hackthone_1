@@ -1,3 +1,5 @@
+import { Inbox } from "lucide-react";
+
 export function EmptyState({
   title,
   description,
@@ -9,12 +11,13 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-md border border-dashed border-input/60 bg-card px-5 py-6">
-      <h3 className="text-[15px] font-semibold">{title}</h3>
-      <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-        {description}
-      </p>
-      {action && <div className="mt-4">{action}</div>}
+    <div className="flex gap-3 rounded-lg border border-dashed border-input/70 bg-card px-4 py-5 sm:px-5">
+      <Inbox aria-hidden className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+      <div className="min-w-0">
+        <h3 className="text-[15px] font-semibold">{title}</h3>
+        <p className="mt-1 max-w-xl text-sm text-muted-foreground">{description}</p>
+        {action && <div className="mt-4">{action}</div>}
+      </div>
     </div>
   );
 }

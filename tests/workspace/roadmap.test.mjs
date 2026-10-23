@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { PHASES, buildRoadmap } from "../../src/lib/roadmap/engine.ts";
 import { newAssessment } from "../../src/lib/landed-cost/assessment.ts";
 import { sampleInputs } from "../../src/lib/landed-cost/defaults.ts";
+import { relevantAssumptions } from "../../src/lib/landed-cost/assumptions.ts";
 
 const ids = (n, p) => Array.from({ length: n }, (_, i) => `${p}${i}`);
 const facts = (over = {}) => ({
@@ -20,6 +21,7 @@ const facts = (over = {}) => ({
 const docs = (inv = 9, pack = 8, answered = 0) => ({ invoice: { missing: inv, total: 10, complete: inv === 0 }, packing: { missing: pack, total: 10, complete: pack === 0 }, checklist: { answered, total: 10 } });
 const build = (over = {}) => buildRoadmap({ facts: facts(), assessment: null, docs: docs(), requests: [], ...(over) });
 const task = (r, id) => r.tasks.find((t) => t.id === id);
+const examineAll = (x) => { x.edited = [...new Set([...x.edited, ...relevantAssumptions(x).map((r) => r.path)])]; };
 const withAssessment = (mutate) => {
   const a = newAssessment("prod-1", sampleInputs());
   mutate(a);
@@ -77,8 +79,14 @@ describe("it reacts to the information it has", () => {
     assert.equal(task(build(), "p2-inputs").support, "assumption");
     const a = withAssessment((x) => { x.edited = ["unitProductionCostInr"]; });
     const r = build({ assessment: a });
-    assert.equal(task(r, "p2-inputs").status, "completed");
-    assert.equal(task(r, "p2-inputs").support, "data");
+    assert.equal(task(r, "p2-inputs").status, "in_progress", "a few edits do not complete cost preparation");
+    assert.equal(task(r, "p2-inputs").support, "assumption");
+    assert.match(task(r, "p2-inputs").supportNote, /11 of 13 assumptions are still sample/);
+    const all = build({ assessment: withAssessment(examineAll) });
+    assert.equal(task(all, "p2-inputs").status, "completed");
+    assert.equal(task(all, "p2-inputs").support, "data");
+    const accepted = build({ assessment: withAssessment((x) => { x.acceptedSamples = relevantAssumptions(x).map((r) => r.path); }) });
+    assert.equal(task(accepted, "p2-inputs").status, "completed", "explicitly accepting the remaining samples also completes it");
   });
   it("tracks quotes: freight confirmed, other charges partly confirmed", () => {
     const a = withAssessment((x) => { x.edited = ["quantity"]; x.inputs.lines.internationalFreight.confirmed = true; x.inputs.fxNote = "bank, 1 Nov"; });
@@ -91,7 +99,9 @@ describe("it reacts to the information it has", () => {
     const low = withAssessment((x) => { x.edited = ["sellingPriceAed"]; x.inputs.sellingPriceAed = 4; });
     assert.equal(task(build({ assessment: low }), "p2-margin").status, "needs_review");
     assert.equal(task(build({ assessment: low }), "p2-margin").blocker, true);
-    const good = withAssessment((x) => { x.edited = ["sellingPriceAed"]; x.inputs.sellingPriceAed = 9; });
+    const partial = withAssessment((x) => { x.edited = ["sellingPriceAed"]; x.inputs.sellingPriceAed = 9; });
+    assert.equal(task(build({ assessment: partial }), "p2-margin").status, "in_progress", "a healthy margin on mostly sample inputs is not settled");
+    const good = withAssessment((x) => { examineAll(x); x.inputs.sellingPriceAed = 9; });
     const t = task(build({ assessment: good }), "p2-margin");
     assert.equal(t.status, "completed");
     assert.match(t.supportNote, /not tested against the market/);
@@ -171,14 +181,14 @@ describe("next best action and blockers", () => {
   it("moves on as work is completed", () => {
     const r1 = build();
     assert.equal(r1.next.task.id, "p2-inputs", "profile done, so the calculator inputs come first");
-    const a = withAssessment((x) => { x.edited = ["unitProductionCostInr"]; });
+    const a = withAssessment(examineAll);
     const r2 = build({ assessment: a });
     assert.notEqual(r2.next.task.id, "p2-inputs");
     assert.ok(r2.next.task.phase >= 2);
   });
   it("explains why that action is next, in plain words", () => {
     const r = build();
-    assert.match(r.next.reason, /earliest open/);
+    assert.match(r.next.reason, /blocks a sound decision|earliest open/);
     assert.ok(r.next.reason.length > 30);
   });
   it("lists only open blockers, and removes one when it is resolved", () => {
@@ -206,5 +216,41 @@ describe("next best action and blockers", () => {
     const r = buildRoadmap({ facts: facts(), assessment: a, docs: docs(0, 0, 10), requests: [] });
     assert.equal(r.next, null);
     assert.equal(r.counts.completed, r.counts.total);
+  });
+});
+
+describe("prioritisation, focus and notes", () => {
+  const loss = () => withAssessment((x) => { examineAll(x); x.inputs.sellingPriceAed = 3; });
+  it("a demonstrated loss outranks every generic or optional gap", () => {
+    const r = build({ assessment: loss(), facts: facts({ fit: { level: "good", score: 80, gaps: ["Add ratings", "Alternative grade"], missingProcesses: [] }, product: { ...facts().product, description: false } }) });
+    assert.equal(r.next.task.id, "p2-margin");
+    assert.match(r.next.reason, /Your own numbers show a problem/);
+    assert.equal(r.recommended.task.id, "p2-margin");
+  });
+  it("optional gaps such as an alternative polymer are not high priority; a missing required process is", () => {
+    const optional = build({ facts: facts({ fit: { level: "good", score: 85, gaps: ["Alternative grades are not declared"], missingProcesses: [] } }) });
+    assert.equal(task(optional, "p1-fit").priority, "medium");
+    const missing = build({ facts: facts({ fit: { level: "stretch", score: 40, gaps: ["Thermoforming"], missingProcesses: ["thermoforming"] } }) });
+    assert.equal(task(missing, "p1-fit").priority, "high");
+  });
+  it("the person can choose a different focus, and the platform's recommendation is still reported", () => {
+    const a = withAssessment((x) => { x.focusTaskId = "p3-hs"; });
+    const r = build({ assessment: a });
+    assert.equal(r.next.task.id, "p3-hs");
+    assert.equal(r.next.chosenByYou, true);
+    assert.notEqual(r.recommended.task.id, "p3-hs");
+    assert.match(r.next.reason, /You chose this/);
+    assert.match(r.next.reason, /would recommend/);
+  });
+  it("a focus on a task that is already completed falls back to the recommendation", () => {
+    const a = withAssessment((x) => { x.focusTaskId = "p3-hs"; x.tasks["p3-hs"] = { status: "completed", note: "", updatedAt: "" }; });
+    assert.equal(build({ assessment: a }).next.chosenByYou, false);
+  });
+  it("a note alone does not pin the status: the automatic status keeps applying", () => {
+    const a = withAssessment((x) => { x.tasks["p1-link"] = { status: null, note: "asked the plant manager", updatedAt: "" }; });
+    const t = task(build({ assessment: a }), "p1-link");
+    assert.equal(t.note, "asked the plant manager");
+    assert.equal(t.statusSource, "data");
+    assert.equal(t.status, "completed", "still derived from the product's factory link");
   });
 });

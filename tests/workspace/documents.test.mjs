@@ -9,7 +9,7 @@ const company = { name: "DEMO Sample Polymers", legalName: "DEMO Sample Polymers
 const product = { name: "Plastic containers", description: "Lidded containers.\nSecond line.", hsCode: "3924.10", unitWeightG: 95 };
 const ctx = (over = {}) => ({ company, product, inputs: { ...sampleInputs(), quantity: 10000, unitsPerCarton: 25, cartonGrossWeightKg: 5, cartonLengthMm: 500, cartonWidthMm: 400, cartonHeightMm: 300, sellingPriceAed: 6 }, inputsAreSample: false, details: {}, ...over });
 const full = {
-  iec: "TESTIEC123", buyerName: "Sample Buyer LLC", buyerAddress: "Sample Street, Dubai", invoiceNumber: "INV-TEST-1", invoiceDate: "2026-11-01",
+  iec: "TESTIEC123", buyerCountry: "Testland", buyerName: "Sample Buyer LLC", buyerAddress: "Sample Street, Dubai", invoiceNumber: "INV-TEST-1", invoiceDate: "2026-11-01",
   incoterm: "FOB", paymentTerms: "30 days", portLoading: "Mundra", portDischarge: "Jebel Ali",
 };
 
@@ -18,13 +18,13 @@ describe("prefill", () => {
     const { values, sources } = effectiveDetails(ctx());
     assert.equal(values.sellerName, "DEMO Sample Polymers Private Limited");
     assert.equal(values.sellerAddress, company.address);
-    assert.equal(values.buyerCountry, "United Arab Emirates");
+    assert.equal(values.buyerCountry, "", "the destination country is never assumed");
     assert.equal(values.countryOrigin, "India");
     assert.equal(sources.sellerName, "prefilled");
   });
   it("never invents buyer details, identifiers, dates, terms or ports", () => {
     const { values, sources } = effectiveDetails(ctx());
-    for (const k of ["iec", "gstin", "buyerName", "buyerAddress", "buyerTrn", "invoiceNumber", "invoiceDate", "incoterm", "paymentTerms", "portLoading", "portDischarge"]) {
+    for (const k of ["iec", "gstin", "buyerCountry", "buyerName", "buyerAddress", "buyerTrn", "invoiceNumber", "invoiceDate", "incoterm", "paymentTerms", "portLoading", "portDischarge"]) {
       assert.equal(values[k], "", k);
       assert.equal(sources[k], "missing", k);
     }
@@ -86,13 +86,35 @@ describe("commercial invoice", () => {
 describe("packing list", () => {
   it("computes cartons, net, gross weight and volume from the product and carton data", () => {
     const p = packingModel(ctx({ details: full }));
-    assert.equal(p.line.cartons, 400);
-    assert.equal(p.line.netPerCartonKg, 2.38); // 25 x 95 g
-    assert.equal(p.line.netTotalKg, 950); // 400 x 2.375 = 950 (to 2 d.p. per carton first)
-    assert.equal(p.line.grossTotalKg, 2000);
-    assert.equal(p.line.volumeCbm, 24);
-    assert.equal(p.line.dims, "500 × 400 × 300 mm");
+    assert.equal(p.rows.length, 1);
+    assert.equal(p.rows[0].kind, "full");
+    assert.equal(p.rows[0].cartons, 400);
+    assert.equal(p.rows[0].unitsPerCarton, 25);
+    assert.equal(p.totals.netKg, 950); // 10,000 units x 95 g
+    assert.equal(p.totals.grossKg, 2000);
+    assert.equal(p.totals.volumeCbm, 24);
+    assert.equal(p.dims, "500 × 400 × 300 mm");
     assert.equal(p.label, DRAFT_LABEL);
+    assert.deepEqual(p.consistency, []);
+  });
+  it("1,000 units at 24 per carton and 250 g: separate full and partial rows, net 250 kg, everything reconciles", () => {
+    const p = packingModel(ctx({ product: { ...product, unitWeightG: 250 }, inputs: { ...ctx().inputs, quantity: 1000, unitsPerCarton: 24, cartonGrossWeightKg: 6.5 }, details: full }));
+    assert.equal(p.rows.length, 2);
+    assert.deepEqual([p.rows[0].kind, p.rows[0].cartons, p.rows[0].units, p.rows[0].netKg], ["full", 41, 984, 246]);
+    assert.deepEqual([p.rows[1].kind, p.rows[1].cartons, p.rows[1].units, p.rows[1].netKg], ["partial", 1, 16, 4]);
+    assert.equal(p.totals.cartons, 42);
+    assert.equal(p.totals.units, 1000);
+    assert.equal(p.totals.netKg, 250);
+    assert.equal(p.rows[1].grossBasis, "scaled_estimate");
+    assert.ok(p.consistency.some((c) => c.severity === "warning" && /ASSUMPTION/.test(c.message)), "the partial carton weight is flagged as an assumption");
+    assert.ok(!p.consistency.some((c) => c.severity === "error"), "no row disagrees with the shipment");
+    assert.equal(p.rows[0].volumeCbm + p.rows[1].volumeCbm, p.totals.volumeCbm + 0, "volume rows add up to the total (within rounding)");
+  });
+  it("an entered partial-carton weight replaces the assumption", () => {
+    const p = packingModel(ctx({ product: { ...product, unitWeightG: 250 }, inputs: { ...ctx().inputs, quantity: 1000, unitsPerCarton: 24, cartonGrossWeightKg: 6.5, partialCartonGrossKg: 4.7 }, details: full }));
+    assert.equal(p.rows[1].grossBasis, "entered");
+    assert.equal(p.rows[1].grossKg, 4.7);
+    assert.ok(!p.consistency.some((c) => /ASSUMPTION/.test(c.message)));
   });
   it("reports missing weight and size data rather than guessing", () => {
     const p = packingModel(ctx({ product: { ...product, unitWeightG: null }, inputs: { ...ctx().inputs, cartonGrossWeightKg: null, cartonLengthMm: null, cartonWidthMm: null, cartonHeightMm: null }, details: full }));
@@ -100,9 +122,9 @@ describe("packing list", () => {
     assert.ok(p.missing.some((m) => /Unit weight/.test(m)));
     assert.ok(p.missing.some((m) => /gross weight/.test(m)));
     assert.ok(p.missing.some((m) => /dimensions/.test(m)));
-    assert.equal(p.line.netTotalKg, null);
+    assert.equal(p.totals.netKg, null);
   });
-  it("is complete only with buyer, references and ports as well as the data", () => {
+  it("has all required FIELDS only with buyer, references and ports as well as the data (presence, not readiness)", () => {
     assert.equal(packingModel(ctx()).complete, false);
     assert.equal(packingModel(ctx({ details: full })).complete, true);
   });

@@ -1,5 +1,6 @@
 import { calculate, validateInputs } from "../landed-cost/calc.ts";
 import type { Assessment } from "../landed-cost/assessment.ts";
+import { productProvidedFields, summariseAssumptions } from "../landed-cost/assumptions.ts";
 import type { DocumentStatus } from "../documents/generate.ts";
 import type { ExpertRequest, TaskStatus, WorkspaceFacts } from "../workspace/types.ts";
 
@@ -37,6 +38,8 @@ export interface RoadmapTask {
   manual: boolean;
   /** Outstanding, and stops a sound decision until resolved. */
   blocker: boolean;
+  /** A problem the person's own numbers demonstrate (for example a loss), as opposed to a gap in what is known. */
+  demonstrated?: boolean;
   /** Shown on regulatory tasks: marking them done is not an approval. */
   disclaimer?: string;
   note: string;
@@ -52,7 +55,10 @@ export interface RoadmapInput {
 export interface Roadmap {
   phases: { id: 1 | 2 | 3 | 4 | 5; title: string; blurb: string; tasks: RoadmapTask[]; counts: { total: number; completed: number; needsReview: number } }[];
   tasks: RoadmapTask[];
-  next: { task: RoadmapTask; reason: string } | null;
+  /** The step to do next: the person's chosen focus if they set one, otherwise the recommendation. */
+  next: { task: RoadmapTask; reason: string; chosenByYou: boolean } | null;
+  /** What the platform itself recommends, whether or not the person chose a different focus. */
+  recommended: { task: RoadmapTask; reason: string } | null;
   blockers: RoadmapTask[];
   counts: { total: number; completed: number; inProgress: number; needsReview: number; notStarted: number; resting: number };
 }
@@ -87,6 +93,7 @@ export function buildRoadmap(input: RoadmapInput): Roadmap {
   const valid = !!a && Object.keys(validateInputs(a.inputs).errors).length === 0;
   const result = valid ? calculate(a!.inputs) : null;
   const edited = !!a && a.edited.length > 0;
+  const sum = a ? summariseAssumptions(a, productProvidedFields(p ? { unitsPerCarton: p.unitsPerCarton, cartonWeightKg: p.cartonWeightKg, cartonDims: p.cartonDims } : null)) : null;
   const calcHref = facts.standalone ? "/viability" : `/viability?product=${ref}`;
   const withRef = (path: string) => (facts.standalone ? path : `${path}?product=${ref}`);
 
@@ -105,7 +112,7 @@ export function buildRoadmap(input: RoadmapInput): Roadmap {
     const level = facts.fit.level;
     const gaps = facts.fit.gaps.length;
     const status: TaskStatus = level === "stretch" ? "needs_review" : gaps === 0 && (level === "strong" || level === "good") ? "completed" : gaps > 0 ? "in_progress" : "needs_review";
-    add({ id: "p1-fit", phase: 1, title: level === "stretch" ? "Decide whether to invest in a new process" : "Review manufacturing fit and close the gaps", why: level === "stretch" ? "This product needs a process you have not declared. That is a major decision." : `${gaps} gap${gaps === 1 ? "" : "s"} in your profile for this product.`, next: { label: "See the match and gaps", href: `/opportunities/${ref}#match` }, priority: level === "stretch" || gaps > 0 ? "high" : "medium", manual: false, blocker: level === "stretch", auto: { status, support: "data", supportNote: `Rule-based fit: ${facts.fit.score}/100 (${level}). Inferred from what you declared.` } });
+    add({ id: "p1-fit", phase: 1, title: level === "stretch" ? "Decide whether to invest in a new process" : "Review manufacturing fit and close the gaps", why: level === "stretch" ? "This product needs a process you have not declared. That is a major decision." : `${gaps} thing${gaps === 1 ? "" : "s"} to firm up in your profile for this product. None stops you making it.`, next: { label: "See the match and gaps", href: `/opportunities/${ref}#match` }, priority: level === "stretch" || facts.fit.missingProcesses.length > 0 ? "high" : gaps > 0 ? "medium" : "low", manual: false, blocker: level === "stretch", auto: { status, support: "data", supportNote: `Rule-based fit: ${facts.fit.score}/100 (${level}). Inferred from what you declared.` } });
   }
   if (facts.profile.machines > 0 && facts.profile.ratedMachines < facts.profile.machines) {
     add({ id: "p1-ratings", phase: 1, title: "Add ratings to your machines", why: "Press size and screw diameter firm up the capability match.", next: { label: "Open the factory profile", href: "/factories" }, priority: "low", manual: false, blocker: false, auto: { status: ratio(facts.profile.ratedMachines, facts.profile.machines), support: "data", supportNote: `${facts.profile.ratedMachines} of ${facts.profile.machines} machine types rated.` } });
@@ -114,7 +121,13 @@ export function buildRoadmap(input: RoadmapInput): Roadmap {
   add({ id: "p1-carton", phase: 1, title: "Record your carton weight and size", why: "Freight is often charged by weight or volume, so the cost depends on how you pack.", next: { label: "Open the calculator", href: `${calcHref}#inputs` }, priority: "medium", manual: false, blocker: false, auto: { status: cartonKnown ? "completed" : "not_started", support: cartonKnown ? "data" : "assumption", supportNote: cartonKnown ? "Carton data is recorded." : "The calculator is using sample carton data." } });
 
   // ---------------- phase 2 ----------------
-  add({ id: "p2-inputs", phase: 2, title: "Replace the sample inputs with your own costs and price", why: "Until you do, every margin and landed-cost figure is illustrative.", next: { label: "Edit the calculator", href: `${calcHref}#inputs` }, priority: "high", manual: false, blocker: !edited, auto: { status: edited ? "completed" : "not_started", support: edited ? "data" : "assumption", supportNote: edited ? "You have entered your own values." : "Still sample values." } });
+  {
+    const left = sum?.samples.length ?? 0;
+    const total = sum?.total ?? 0;
+    const done = sum?.complete ?? false;
+    const started = !!sum && sum.entered + sum.confirmed + sum.accepted > 0;
+    add({ id: "p2-inputs", phase: 2, title: "Replace the sample inputs with your own costs and price", why: "Until you do, every margin and landed-cost figure is illustrative.", next: { label: "Edit the calculator", href: `${calcHref}#inputs` }, priority: "high", manual: false, blocker: !done, auto: { status: done ? "completed" : started ? "in_progress" : "not_started", support: done ? "data" : "assumption", supportNote: done ? "No sample value is left unexamined: each is replaced, confirmed, from your product record or accepted by you." : `${left} of ${total} assumptions are still sample values. Replace each, confirm it with a quote, or accept it as it is.` } });
+  }
   const freightOk = !!a?.inputs.lines.internationalFreight.confirmed;
   add({ id: "p2-freight", phase: 2, title: "Get a freight quote and mark it confirmed", why: "International freight is usually the most uncertain logistics cost.", next: { label: "Open the calculator", href: `${calcHref}#inputs` }, priority: "high", manual: false, blocker: false, auto: { status: freightOk ? "completed" : "not_started", support: freightOk ? "data" : "assumption", supportNote: freightOk ? "You hold a quote for freight." : "Freight is an estimate." } });
   const fxOk = !!a && a.inputs.fxNote.trim().length > 0;
@@ -124,32 +137,37 @@ export function buildRoadmap(input: RoadmapInput): Roadmap {
     const confirmed = money.filter((k) => a.inputs.lines[k].confirmed).length;
     add({ id: "p2-quotes", phase: 2, title: "Get quotes for the other charges", why: "Each confirmed charge removes an estimate from the landed cost.", next: { label: "Open the calculator", href: `${calcHref}#inputs` }, priority: "medium", manual: false, blocker: false, auto: { status: ratio(confirmed, money.length), support: confirmed === money.length && money.length > 0 ? "data" : "assumption", supportNote: `${confirmed} of ${money.length} charges confirmed by a quote.` } });
   }
+  let demonstrated: 0 | 1 | 2 = 0;
   {
     const target = a?.inputs.targetMarginPercent ?? 20;
     let auto: Auto = { status: "not_started", support: "assumption", supportNote: "No landed-cost estimate yet." };
     if (result) {
       const m = result.grossMarginPct ?? 0;
-      const below = result.grossProfitInr < 0 || m < target;
+      const loss = result.grossProfitInr < 0;
+      const below = loss || m < target;
       auto = !edited
         ? { status: "not_started", support: "assumption", supportNote: "The estimate uses sample inputs." }
         : below
-          ? { status: "needs_review", support: "assumption", supportNote: `Gross margin ${m}% is below your ${target}% target at your assumptions.` }
-          : { status: "completed", support: "assumption", supportNote: `Gross margin ${m}% meets your ${target}% target at your assumptions. The selling price is not tested against the market.` };
+          ? { status: "needs_review", support: "assumption", supportNote: loss ? `At your numbers this export loses money: gross margin is ${m}%.` : `Gross margin ${m}% is below your ${target}% target at your assumptions.` }
+          : sum && !sum.complete
+            ? { status: "in_progress", support: "assumption", supportNote: `Gross margin ${m}% meets your ${target}% target, but ${sum.samples.length} assumptions are still samples, so this is not settled.` }
+            : { status: "completed", support: "assumption", supportNote: `Gross margin ${m}% meets your ${target}% target at your assumptions. The selling price is not tested against the market.` };
+      demonstrated = below ? (loss ? 2 : 1) : 0;
     }
-    add({ id: "p2-margin", phase: 2, title: "Check the margin and compare scenarios", why: "Shows which variables make this viable or unattractive.", next: { label: "Compare scenarios", href: `${calcHref}#scenarios` }, priority: "high", manual: false, blocker: auto.status === "needs_review", auto });
+    add({ id: "p2-margin", phase: 2, title: demonstrated === 2 ? "Fix the loss: this export loses money at your numbers" : "Check the margin and compare scenarios", why: demonstrated ? "Your own numbers show the export does not pay at this price. Nothing else matters until you change the price, the costs or the product." : "Shows which variables make this viable or unattractive.", next: { label: "Compare scenarios", href: `${calcHref}#scenarios` }, priority: "high", manual: false, blocker: auto.status === "needs_review", demonstrated: demonstrated > 0, auto });
   }
-  add({ id: "p2-market", phase: 2, title: "Test your selling price against real UAE evidence", why: "No market data is connected, so your price has not been tested. Talk to importers or distributors.", next: { label: "Ask for market guidance", href: `/services?topic=review${facts.standalone ? "" : `&product=${ref}`}` }, priority: "medium", manual: true, blocker: false, auto: { status: "not_started", support: "unknown", supportNote: "Only a person can show this. The platform has no market data." } });
+  add({ id: "p2-market", phase: 2, title: "Test your selling price against real Market evidence", why: "No market data is connected, so your price has not been tested. Talk to importers or distributors.", next: { label: "Ask for market guidance", href: `/services?topic=review${facts.standalone ? "" : `&product=${ref}`}` }, priority: "medium", manual: true, blocker: false, auto: { status: "not_started", support: "unknown", supportNote: "Only a person can show this. The platform has no market data." } });
 
   // ---------------- phase 3 ----------------
   const hs = !!p?.hsCode;
   add({ id: "p3-hs", phase: 3, title: "Confirm the HS classification", why: "Duty, origin and many requirements all depend on the product code.", next: { label: "Ask an expert", href: `/services?topic=hs${facts.standalone ? "" : `&product=${ref}`}` }, priority: "high", manual: true, blocker: true, disclaimer: REG_DISCLAIMER, auto: { status: hs ? "in_progress" : "not_started", support: "unknown", supportNote: hs ? `You claim ${p!.hsCode}. It is unverified.` : "No code recorded. Only a classifier or customs authority can settle it." } });
   if (q.compliance.length > 0) {
     const n = ticked(a, q.compliance);
-    add({ id: "p3-reqs", phase: 3, title: "Work through the Indian export and UAE import questions", why: "These are the open questions on what the product and importer must meet.", next: { label: "Open the screening", href: withRef("/compliance") }, priority: "high", manual: false, blocker: n < q.compliance.length, disclaimer: REG_DISCLAIMER, auto: { status: ratio(n, q.compliance.length), support: "unknown", supportNote: `${n} of ${q.compliance.length} marked resolved by you. The platform has verified none of them.` } });
+    add({ id: "p3-reqs", phase: 3, title: "Work through the Indian export and destination import questions", why: "These are the open questions on what the product and importer must meet.", next: { label: "Open the screening", href: withRef("/compliance") }, priority: "high", manual: false, blocker: n < q.compliance.length, disclaimer: REG_DISCLAIMER, auto: { status: ratio(n, q.compliance.length), support: "unknown", supportNote: `${n} of ${q.compliance.length} marked resolved by you. The platform has verified none of them.` } });
     const nt = ticked(a, q.testing);
     add({ id: "p3-testing", phase: 3, title: "Settle the testing and certification evidence", why: "Buyers and authorities may ask for test reports and declarations.", next: { label: "Open the testing questions", href: `${withRef("/compliance")}#testing` }, priority: "medium", manual: false, blocker: false, disclaimer: REG_DISCLAIMER, auto: { status: ratio(nt, q.testing.length), support: "unknown", supportNote: `${nt} of ${q.testing.length} marked resolved by you.` } });
   }
-  add({ id: "p3-duty", phase: 3, title: "Confirm the UAE customs duty for your tariff line", why: "The calculator's duty rate is an unverified assumption.", next: { label: "Ask an expert", href: `/services?topic=hs${facts.standalone ? "" : `&product=${ref}`}` }, priority: "medium", manual: true, blocker: false, disclaimer: REG_DISCLAIMER, auto: { status: "not_started", support: "assumption", supportNote: `The calculator uses ${a?.inputs.duty.ratePercent ?? 5}% as an assumption.` } });
+  add({ id: "p3-duty", phase: 3, title: "Confirm the destination customs duty for your tariff line", why: "The calculator's duty rate is an unverified assumption.", next: { label: "Ask an expert", href: `/services?topic=hs${facts.standalone ? "" : `&product=${ref}`}` }, priority: "medium", manual: true, blocker: false, disclaimer: REG_DISCLAIMER, auto: { status: "not_started", support: "assumption", supportNote: `The calculator uses ${a?.inputs.duty.ratePercent ?? 5}% as an assumption.` } });
   if (q.cepa.length > 0) {
     const n = ticked(a, q.cepa);
     add({ id: "p3-cepa", phase: 3, title: "Assess origin for the CEPA preference", why: "Preferential duty depends on meeting origin rules. It has not been checked.", next: { label: "Open the origin questions", href: `${withRef("/schemes")}#cepa` }, priority: "medium", manual: false, blocker: false, disclaimer: REG_DISCLAIMER, auto: { status: ratio(n, q.cepa.length), support: "unknown", supportNote: `${n} of ${q.cepa.length} marked resolved by you. Eligibility is not determined here.` } });
@@ -159,9 +177,21 @@ export function buildRoadmap(input: RoadmapInput): Roadmap {
 
   // ---------------- phase 4 ----------------
   const docHref = facts.standalone ? "/documentation/standalone" : `/documentation/${ref}`;
-  const docStatus = (d: { missing: number; total: number }): TaskStatus => (d.missing === 0 ? "completed" : d.missing >= d.total ? "not_started" : "in_progress");
-  add({ id: "p4-invoice", phase: 4, title: "Complete the commercial invoice draft", why: "Buyer, terms and identifiers must come from you. The platform never invents them.", next: { label: "Open the invoice", href: `${docHref}#invoice` }, priority: "medium", manual: false, blocker: false, auto: { status: docStatus(docs.invoice), support: "data", supportNote: docs.invoice.missing === 0 ? "All required fields filled. It is still a draft for review." : `${docs.invoice.missing} required item${docs.invoice.missing === 1 ? "" : "s"} missing.` } });
-  add({ id: "p4-packing", phase: 4, title: "Complete the packing list draft", why: "Weights, cartons and references must match the real shipment.", next: { label: "Open the packing list", href: `${docHref}#packing` }, priority: "medium", manual: false, blocker: false, auto: { status: docStatus(docs.packing), support: "data", supportNote: docs.packing.missing === 0 ? "All required fields filled. It is still a draft for review." : `${docs.packing.missing} required item${docs.packing.missing === 1 ? "" : "s"} missing.` } });
+  type Doc = DocumentStatus["invoice"];
+  const docStatus = (d: Doc): TaskStatus => {
+    const problems = (d.invalid ?? 0) + (d.inconsistent ?? 0);
+    if (d.missing === 0) return problems > 0 ? "needs_review" : "completed";
+    return d.missing >= d.total ? "not_started" : "in_progress";
+  };
+  const docNote = (d: Doc, what: string) => {
+    const problems = (d.invalid ?? 0) + (d.inconsistent ?? 0);
+    if (d.missing > 0) return `${d.missing} required item${d.missing === 1 ? "" : "s"} missing.`;
+    if (problems > 0) return `Fields are present, but ${d.invalid ?? 0} format error${(d.invalid ?? 0) === 1 ? "" : "s"} and ${d.inconsistent ?? 0} figure mismatch${(d.inconsistent ?? 0) === 1 ? "" : "es"} need fixing.`;
+    const rv = d.review === "reviewed" ? "You have recorded a review." : d.review === "stale" ? "It changed after your review." : "You have not recorded a review yet.";
+    return `Fields are present and nothing looks malformed. ${rv} It is still a draft: ${what}`;
+  };
+  add({ id: "p4-invoice", phase: 4, title: "Complete the commercial invoice draft", why: "Buyer, terms and identifiers must come from you. The platform never invents them.", next: { label: "Open the invoice", href: `${docHref}#invoice` }, priority: "medium", manual: false, blocker: false, auto: { status: docStatus(docs.invoice), support: "data", supportNote: docNote(docs.invoice, "check every line against the agreed order.") } });
+  add({ id: "p4-packing", phase: 4, title: "Complete the packing list draft", why: "Weights, cartons and references must match the real shipment.", next: { label: "Open the packing list", href: `${docHref}#packing` }, priority: "medium", manual: false, blocker: false, auto: { status: docStatus(docs.packing), support: "data", supportNote: docNote(docs.packing, "weigh a packed carton before shipping.") } });
   add({ id: "p4-checklist", phase: 4, title: "Go through the export documentation checklist", why: "Shows what else may be asked for and who provides it.", next: { label: "Open the checklist", href: `${docHref}#checklist` }, priority: "medium", manual: false, blocker: false, auto: { status: ratio(docs.checklist.answered, docs.checklist.total), support: "unknown", supportNote: `${docs.checklist.answered} of ${docs.checklist.total} items answered. Which documents are required is not verified.` } });
 
   // ---------------- phase 5 ----------------
@@ -177,33 +207,43 @@ export function buildRoadmap(input: RoadmapInput): Roadmap {
     const { auto, ...rest } = d;
     const user = a?.tasks[d.id];
     const status = user?.status ?? auto.status;
+    const chosen = !!user?.status;
     let support = auto.support;
     let supportNote = auto.supportNote;
-    if (user) {
+    if (user && chosen) {
       if (user.status === "completed" && auto.status !== "completed") {
         support = d.manual || auto.support === "unknown" ? "unknown" : "assumption";
         supportNote = `Marked completed by you. ${d.manual ? "Nothing in your saved data can show this." : "Your saved data does not show it yet."}`;
       } else supportNote = `Status set by you. ${auto.supportNote}`;
     }
     const open = status !== "completed";
-    return { ...rest, status, statusSource: user ? "you" : "data", support, supportNote, note: user?.note ?? "", blocker: rest.blocker && open } as RoadmapTask;
+    return { ...rest, status, statusSource: chosen ? "you" : "data", support, supportNote, note: user?.note ?? "", blocker: rest.blocker && open } as RoadmapTask;
   });
 
   const phases = PHASES.map((ph) => {
     const list = tasks.filter((t) => t.phase === ph.id);
     return { ...ph, tasks: list, counts: { total: list.length, completed: list.filter((t) => t.status === "completed").length, needsReview: list.filter((t) => t.status === "needs_review").length } };
   });
-  const rank = { high: 0, medium: 1, low: 2 } as const;
   const open = tasks.filter((t) => t.status !== "completed");
-  // High-priority work first, earliest phase first within a priority. Low-priority work only when nothing else is open.
-  const ordered = [...open].sort((x, y) => rank[x.priority] - rank[y.priority] || x.phase - y.phase);
+  // Order: a problem the person's own numbers demonstrate, then other blockers, then by priority, earliest phase first.
+  // A generic or optional profile gap never outranks a demonstrated problem.
+  const rankOf = (t: RoadmapTask) => (t.demonstrated && t.status === "needs_review" ? (demonstrated === 2 ? 0 : 1) : t.blocker && t.priority === "high" ? 2 : t.priority === "high" ? 3 : t.priority === "medium" ? 4 : 5);
+  const ordered = [...open].sort((x, y) => rankOf(x) - rankOf(y) || x.phase - y.phase);
   const pick = ordered[0];
-  const next = pick ? { task: pick, reason: `${pick.why} It is the earliest open ${pick.priority}-priority step, in phase ${pick.phase}: ${PHASES[pick.phase - 1].title.toLowerCase()}.` } : null;
+  const why = (t: RoadmapTask) => {
+    const r = rankOf(t);
+    const lead = r <= 1 ? "Your own numbers show a problem here, so it comes before everything else." : r === 2 ? "It blocks a sound decision and nothing earlier is blocking you." : `It is the earliest open ${t.priority}-priority step, in phase ${t.phase}: ${PHASES[t.phase - 1].title.toLowerCase()}.`;
+    return `${t.why} ${lead}`;
+  };
+  const recommended = pick ? { task: pick, reason: why(pick) } : null;
+  const chosenTask = a?.focusTaskId ? open.find((t) => t.id === a.focusTaskId) : undefined;
+  const next = chosenTask ? { task: chosenTask, reason: `You chose this as your focus. ${recommended && recommended.task.id !== chosenTask.id ? `The platform would recommend "${recommended.task.title}" first.` : "It is also what the platform recommends."}`, chosenByYou: true } : recommended ? { ...recommended, chosenByYou: false } : null;
 
   return {
     phases,
     tasks,
     next,
+    recommended,
     blockers: tasks.filter((t) => t.blocker),
     counts: {
       total: tasks.length,

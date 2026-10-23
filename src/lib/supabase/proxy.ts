@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PUBLIC_PREFIXES = ["/login", "/signup", "/auth/"];
-const AUTH_PAGES = ["/login", "/signup"];
+// The UX wireframes (fictional data, no backend) are public outside production only.
+const PREVIEW_PREFIX = process.env.NODE_ENV === "production" ? [] : ["/ux-preview"];
+const PUBLIC_PREFIXES = ["/login", "/signup", "/forgot-password", "/welcome", "/sample", "/auth/", ...PREVIEW_PREFIX];
+const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p.endsWith("/") ? p : `${p}/`));
@@ -60,6 +62,12 @@ export async function updateSession(request: NextRequest) {
     return redirect;
   };
 
+  // Visitors who are not signed in see the public homepage at "/" (same URL, no redirect to sign-in).
+  if (!signedIn && pathname === "/") {
+    const rewrite = NextResponse.rewrite(new URL("/welcome", request.url));
+    response.cookies.getAll().forEach((c) => rewrite.cookies.set(c));
+    return rewrite;
+  }
   if (!signedIn && !isPublic(pathname)) {
     const next = pathname === "/" ? "" : `?next=${encodeURIComponent(pathname)}`;
     return redirectTo("/login", next);

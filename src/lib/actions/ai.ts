@@ -3,6 +3,7 @@
 import { requireOrganization } from "@/lib/organization";
 import { aiStatus, AiError, AI_ERROR_MESSAGES, createProvider, withinLimit, type AiErrorCode } from "@/lib/ai/provider";
 import { runExplanation, runExtraction } from "@/lib/ai/run";
+import { logAiFailure } from "@/lib/ai/diagnostics";
 import { buildExplainPayload } from "@/lib/ai/payload";
 import { loadWorkspaceFacts } from "@/lib/workspace-facts";
 import { matchEntry } from "@/lib/opportunities/engine";
@@ -42,10 +43,12 @@ export async function extractWithAi(text: string, consent: boolean): Promise<{ o
   if (typeof text !== "string" || text.trim().length < 3) return fail("bad_output");
   const ready = prepare(user.id, consent);
   if ("ok" in ready) return ready;
+  const t0 = Date.now();
   try {
     const r = await runExtraction(ready.provider, text);
     return { ok: true, products: r.products, rejected: r.rejected, provider: ready.provider.name, model: ready.provider.model };
   } catch (e) {
+    logAiFailure({ op: "extract", provider: ready.provider.name, model: ready.provider.model, ms: Date.now() - t0 }, e);
     return fail(e instanceof AiError ? e.code : "provider_error");
   }
 }
@@ -60,6 +63,7 @@ export async function explainWithAi(
   const { user, organization } = await requireOrganization();
   const ready = prepare(user.id, consent);
   if ("ok" in ready) return ready;
+  const t0 = Date.now();
   try {
     // The facts are rebuilt on the server from the user's own company. The browser only supplies the
     // commercial assumptions (numbers), which are validated here.
@@ -75,6 +79,7 @@ export async function explainWithAi(
     const r = await runExplanation(ready.provider, buildExplainPayload({ facts, entry, match, commercial, evidence: evidenceForEntry(entry?.id) }));
     return { ok: true, explanation: r.value, dropped: r.dropped.length, provider: ready.provider.name, model: ready.provider.model, at: new Date().toISOString() };
   } catch (e) {
+    logAiFailure({ op: "explain", provider: ready.provider.name, model: ready.provider.model, ms: Date.now() - t0 }, e);
     return fail(e instanceof AiError ? e.code : "provider_error");
   }
 }

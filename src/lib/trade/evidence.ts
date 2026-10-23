@@ -3,7 +3,7 @@ import { join } from "node:path";
 export { fmtTonnes, fmtUsd } from "./format.ts";
 
 /**
- * UAE market evidence from a dated snapshot of public UN Comtrade data.
+ * Market evidence from a dated snapshot of public UN Comtrade data.
  *
  * THE DATA IS NOT PART OF THE REPOSITORY. Redistribution of UN Comtrade data has not been authorised
  * for this project (see docs/trade-data-source.md), so the snapshot lives in a git-ignored file and is
@@ -88,9 +88,9 @@ export interface YearPoint {
 export interface HeadingEvidence {
   heading: string;
   label: string;
-  /** Imports into the UAE from all countries, as reported by the UAE. */
+  /** Imports into the destination market from all countries, as reported by the destination market. */
   uaeImports: YearPoint[];
-  /** Exports from India to the UAE, as reported by India (mirror data: not the UAE's own record). */
+  /** Exports from India to the destination market, as reported by India (mirror data: not the destination market's own record). */
   indiaExports: YearPoint[];
   latestUae: YearPoint | null;
   latestIndia: YearPoint | null;
@@ -112,12 +112,12 @@ export interface EntryEvidence {
 }
 
 export const NOT_LOADED_REASON =
-  "UAE trade evidence is not loaded in this deployment. It comes from UN Comtrade data whose redistribution has not been authorised for this project, so it is kept out of the code and shown only on a machine where an operator has opted in for an internal demonstration.";
+  "Destination trade evidence is not loaded in this deployment. It comes from UN Comtrade data whose redistribution has not been authorised for this project, so it is kept out of the code and shown only on a machine where an operator has opted in for an internal demonstration.";
 
 export const GENERAL_LIMITATIONS = [
   "This is a dated snapshot of public UN Comtrade data, not a live feed.",
   "It shows what was reported to have been imported or exported under broad HS headings. It is market evidence, not demand for your product, not buyer intent and not a forecast.",
-  "The UAE does not report imports by partner country in this source. India's exports to the UAE are India's own report (mirror data), valued differently (FOB, not CIF) and timed differently, so the two series should not be divided or subtracted.",
+  "The destination does not report imports by partner country in this source. India's exports to the destination market are India's own report (mirror data), valued differently (FOB, not CIF) and timed differently, so the two series should not be divided or subtracted.",
   "Values are in US dollars as reported. No prices per unit are derived and no growth rates are shown.",
   "A heading groups many products. Which heading a product falls under has not been verified: see the HS classification step.",
 ];
@@ -159,7 +159,7 @@ export function createEvidence(snapshot: Snapshot | null) {
       headings,
       hasData: headings.length > 0,
       emptyReason: headings.length > 0 ? "" : "No reported trade data for this product type in the loaded snapshot.",
-      freshness: headings.length ? `UAE-reported imports up to ${uaeYear || "n/a"}; India-reported exports up to ${inYear || "n/a"}. Snapshot retrieved ${snapshot.source.retrieved}. Static, not live.` : "No data for this product type.",
+      freshness: headings.length ? `destination-reported imports up to ${uaeYear || "n/a"}; India-reported exports up to ${inYear || "n/a"}. Snapshot retrieved ${snapshot.source.retrieved}. Static, not live.` : "No data for this product type.",
     };
   }
 

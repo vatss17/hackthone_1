@@ -327,7 +327,12 @@ describe("saved assessments are untrusted input", () => {
       checks: { "good.id": true, "bad id!": true, other: "yes" },
     });
     const a = parseAssessment(hostile, "ref", defaults);
-    assert.equal(Object.keys(validateInputs(a.inputs).errors).length, 0);
+    // Out-of-range numbers are kept so the person sees an inline error (never silently replaced); the model refuses to calculate.
+    assert.equal(a.inputs.quantity, -5);
+    assert.ok("quantity" in validateInputs(a.inputs).errors);
+    assert.equal(a.inputs.inrPerAed, defaults.inrPerAed, "text is not a number: falls back");
+    assert.equal(a.inputs.sellingPriceAed, defaults.sellingPriceAed, "beyond any sane range: falls back");
+    assert.throws(() => calculate(a.inputs), /Invalid inputs/);
     assert.equal(a.inputs.lines.packaging.basis, defaults.lines.packaging.basis);
     assert.equal(a.inputs.lines.packaging.currency, "INR");
     assert.equal(a.inputs.productLabel, "x y");
@@ -336,18 +341,40 @@ describe("saved assessments are untrusted input", () => {
     assert.equal(a.scenarios[0].kind, "base");
     assert.equal(a.scenarios[0].freightPct, 0, "the base scenario can never be altered");
     assert.ok(a.scenarios.every((s) => s.pricePct <= 500 && s.freightPct <= 500));
-    assert.doesNotThrow(() => calculate(a.inputs));
+    assert.doesNotThrow(() => calculate({ ...a.inputs, quantity: 5, lines: { ...a.inputs.lines, packaging: { ...a.inputs.lines.packaging, amount: 1 } }, duty: { ...a.inputs.duty, ratePercent: 5 } }));
   });
   it("rejects non-JSON, wrong versions and non-objects", () => {
-    for (const bad of ["not json", "[]", "null", JSON.stringify({ v: 2 })]) assert.equal(parseAssessment(bad, "r", defaults), null);
+    for (const bad of ["not json", "[]", "null", JSON.stringify({ v: 99 })]) assert.equal(parseAssessment(bad, "r", defaults), null);
   });
   it("round-trips a real assessment", () => {
     const a = newAssessment("r", worked());
     a.edited = ["quantity"];
+    a.answers = { "q.one": { state: "answered", answer: "Yes", note: "", source: "Broker email", sourceDate: "2026-10-01", reviewer: "", reviewedOn: "", answeredOn: "2026-10-02" } };
     a.checks = { "q.one": true };
     const back = parseAssessment(JSON.stringify(a), "r", defaults);
     assert.deepEqual(back.inputs, a.inputs);
     assert.deepEqual(back.checks, a.checks);
+    assert.deepEqual(back.answers, a.answers);
+  });
+  it("migrates a version 1 file without inventing answers, keeping the original text untouched", () => {
+    const v1 = JSON.stringify({ v: 1, inputs: sampleInputs(), edited: ["quantity"], checks: { "q.one": true, "q.two": true }, tasks: { "p3-hs": { status: "in_progress", note: "asked broker", updatedAt: "" } } });
+    const a = parseAssessment(v1, "r", defaults);
+    assert.equal(a.v, 2);
+    assert.deepEqual(Object.keys(a.checks).sort(), ["q.one", "q.two"]);
+    assert.equal(a.answers["q.one"].state, "answered");
+    assert.equal(a.answers["q.one"].legacy, true);
+    assert.equal(a.answers["q.one"].answer, "", "no answer text is invented");
+    assert.equal(a.tasks["p3-hs"].status, "in_progress");
+    assert.deepEqual(a.acceptedSamples, []);
+    assert.equal(JSON.parse(v1).v, 1);
+  });
+  it("keeps zero and negative typed values so they can be explained, instead of silently reverting them", () => {
+    for (const [field, value] of [["quantity", 0], ["inrPerAed", 0], ["quantity", -3]]) {
+      const raw = JSON.stringify({ v: 2, inputs: { ...sampleInputs(), [field]: value } });
+      const a = parseAssessment(raw, "r", defaults);
+      assert.equal(a.inputs[field], value, `${field}=${value} is kept`);
+      assert.ok(field in validateInputs(a.inputs).errors, `${field}=${value} produces an inline error`);
+    }
   });
   it("coerceInputs keeps valid values and falls back field by field", () => {
     const c = coerceInputs({ quantity: 123, unitsPerCarton: "x" }, defaults);
@@ -365,7 +392,7 @@ describe("executive summary wording", () => {
     assert.equal(s.sentences[0], "Promising manufacturing fit.");
     assert.match(s.sentences[1], /gross margin is 25.38%/);
     assert.match(s.sentences[1], /depends on/);
-    assert.equal(s.sentences[2], "UAE regulatory requirements have not yet been verified.");
+    assert.equal(s.sentences[2], "Destination regulatory requirements have not yet been verified.");
   });
   it("says the figures are illustrative while inputs are still samples", () => {
     const s = executiveSummary({ fit: "strong", assessment: newAssessment("r", worked()), format: fmt });

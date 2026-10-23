@@ -78,10 +78,11 @@ export function validateFactory(input: Partial<Record<FactoryField, unknown>>): 
   };
   const errors: Partial<Record<FactoryField, string>> = {};
 
-  const text = (field: FactoryField, label: string, opts: { required: boolean; min?: number; max: number }) => {
+  // Messages are fixed English sentences: the form translates them where they are shown (see factory-form.tsx).
+  const text = (field: FactoryField, missing: string, opts: { required: boolean; min?: number; max: number }) => {
     const v = values[field];
     if (v.length === 0) {
-      if (opts.required) errors[field] = `Enter the ${label}.`;
+      if (opts.required) errors[field] = missing;
       return;
     }
     if (CONTROL_CHARS.test(v)) errors[field] = "Remove line breaks and control characters.";
@@ -90,10 +91,10 @@ export function validateFactory(input: Partial<Record<FactoryField, unknown>>): 
     else if (!HAS_LETTER_OR_NUMBER.test(v)) errors[field] = "Include at least one letter or number.";
   };
 
-  text("factoryName", "factory name", { required: true, min: FACTORY_NAME_MIN, max: FACTORY_NAME_MAX });
-  text("addressLine1", "address", { required: true, max: ADDRESS_MAX });
-  text("addressLine2", "address", { required: false, max: ADDRESS_MAX });
-  text("city", "city", { required: true, max: CITY_MAX });
+  text("factoryName", "Enter the factory name.", { required: true, min: FACTORY_NAME_MIN, max: FACTORY_NAME_MAX });
+  text("addressLine1", "Enter the address.", { required: true, max: ADDRESS_MAX });
+  text("addressLine2", "Enter the address.", { required: false, max: ADDRESS_MAX });
+  text("city", "Enter the city.", { required: true, max: CITY_MAX });
 
   if (values.state.length === 0) errors.state = "Choose the state or union territory.";
   else if (!(INDIAN_STATES as readonly string[]).includes(values.state)) errors.state = "Choose a state or union territory from the list.";

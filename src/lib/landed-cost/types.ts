@@ -49,6 +49,8 @@ export interface Inputs {
   cartonLengthMm: number | null;
   cartonWidthMm: number | null;
   cartonHeightMm: number | null;
+  /** Gross weight of the one partial carton, if the person entered it. Otherwise it is an estimate scaled from a full carton. */
+  partialCartonGrossKg: number | null;
   /** Ex-factory production cost of ONE unit, in INR. */
   unitProductionCostInr: number;
   lines: Record<LineKey, CostLine>;
@@ -56,7 +58,7 @@ export interface Inputs {
   inrPerAed: number;
   /** Optional note of where the rate came from and its date, typed by the user. */
   fxNote: string;
-  /** Proposed UAE selling price of ONE unit, in AED. */
+  /** Proposed destination selling price of ONE unit, in AED. */
   sellingPriceAed: number;
   duty: {
     ratePercent: number;

@@ -369,6 +369,25 @@ export async function updateProduct(fd: FormData): Promise<void> {
   finish(error, back, anchor, "product_updated");
 }
 
+/**
+ * Brings an archived product back. It calls the owner-only restore_product database function (see the proposed migration), because archived
+ * rows are frozen against ordinary updates. Until that function exists on the database, this says so plainly and changes nothing.
+ */
+export async function restoreProduct(fd: FormData): Promise<void> {
+  const id = rowId(fd, "productId");
+  if (!id) redirect("/products");
+  await owner("/products", "archived");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("restore_product", { p_product_id: id });
+  if (!error) redirect(`/products?notice=product_restored#archived`);
+  // PGRST202 / 42883: the function is not on this database yet. P0002: not found or not yours. 23505: an active product has the same name.
+  const code = (error as { code?: string }).code;
+  if (code === "PGRST202" || code === "42883") redirect("/products?error=restore_unavailable#archived");
+  if (code === "23505") redirect("/products?error=restore_duplicate#archived");
+  if (code === "P0002") redirect("/products?error=restore_missing#archived");
+  redirect("/products?error=failed#archived");
+}
+
 export async function archiveProduct(fd: FormData): Promise<void> {
   const back = productBack(fd);
   const org = await owner(back, "details");
@@ -380,7 +399,7 @@ export async function archiveProduct(fd: FormData): Promise<void> {
     .eq("organization_id", org.id)
     .is("archived_at", null);
   if (error) go(back, "details", "error", errorCodeFor(error));
-  redirect("/products?notice=product_archived");
+  redirect(`/products?notice=product_archived&archived=${rowId(fd, "productId")}`);
 }
 
 export async function addSpecification(fd: FormData): Promise<void> {

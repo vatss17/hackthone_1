@@ -1,3 +1,4 @@
+import { statusLabel } from "../../config/status.ts";
 import type { FitLevel } from "../opportunities/types.ts";
 import { sensitivities } from "./calc.ts";
 import type { Assessment } from "./assessment.ts";
@@ -78,7 +79,7 @@ export function executiveSummary(args: { fit: FitLevel | null; assessment: Asses
       if (tone === "mixed") tone = "positive";
     }
   }
-  const regulatory = "UAE regulatory requirements have not yet been verified.";
+  const regulatory = "Destination regulatory requirements have not yet been verified.";
   return { tone, sentences: [manufacturing, commercial, regulatory], numbers };
 }
 
@@ -101,9 +102,9 @@ export function missingInformation(args: { assessment: Assessment | null; hsClai
   if (!i || !i.lines.internationalFreight.confirmed) items.push({ id: "freight", label: "A freight quote", why: "International freight is the most uncertain logistics cost until you hold a quote.", href: `${calc}#inputs`, kind: "assumption" });
   items.push({ id: "duty", label: "Customs duty for your product code", why: "The duty rate in the calculator is an unverified assumption.", href: `/compliance?product=${ref}`, kind: "unknown" });
   items.push({ id: "hs", label: hsClaimed ? "Confirmation of your claimed HS code" : "An HS code, then its confirmation", why: "Duty, rules of origin and some requirements all depend on classification.", href: `/compliance?product=${ref}#hs`, kind: "unknown" });
-  items.push({ id: "uae-reqs", label: "UAE import requirements for this product", why: "No requirement has been verified against official sources.", href: `/compliance?product=${ref}`, kind: "unknown" });
+  items.push({ id: "uae-reqs", label: "Destination import requirements for this product", why: "No requirement has been verified against official sources.", href: `/compliance?product=${ref}`, kind: "unknown" });
   items.push({ id: "cepa", label: "Whether CEPA preferential duty could apply", why: "Eligibility depends on rules of origin and classification. It has not been checked.", href: `/schemes?product=${ref}`, kind: "unknown" });
-  items.push({ id: "demand", label: "Verified UAE demand and price levels", why: "No market data is connected, so your selling price is untested against the market.", href: `/opportunities/${ref}?stage=4`, kind: "missing" });
+  items.push({ id: "demand", label: "Verified destination demand and price levels", why: "No market data is connected, so your selling price is untested against the market.", href: `/opportunities/${ref}?stage=4`, kind: "missing" });
   if (capabilityGaps > 0) items.push({ id: "gaps", label: `${capabilityGaps} gap${capabilityGaps === 1 ? "" : "s"} in your factory profile for this product`, why: "Closing them makes the manufacturing assessment firmer.", href: "/factories", kind: "missing" });
   if (i && (i.cartonGrossWeightKg === null || i.cartonLengthMm === null)) items.push({ id: "carton", label: "Carton weight and dimensions", why: "Needed to cost freight by weight or volume.", href: `${calc}#inputs`, kind: "missing" });
   return items;
@@ -125,6 +126,6 @@ export function nextActions(args: { assessment: Assessment | null; ref: string; 
     { label: "Compare scenarios and find your break-even price", href: `/viability?product=${ref}#scenarios`, done: false, note: "See which variable makes this viable or not." },
     { label: "Work through the compliance screening questions", href: `/compliance?product=${ref}`, done: checksTotal > 0 && checksResolved === checksTotal, note: `${checksResolved} of ${checksTotal} marked resolved.` },
     { label: "Check the CEPA and export-scheme questions", href: `/schemes?product=${ref}`, done: false, note: "Eligibility is not determined by this platform." },
-    { label: "Ask an expert to confirm classification and requirements", href: "/services", done: false, note: "Expert help is a preview today." },
+    { label: "Ask an expert to confirm classification and requirements", href: "/services", done: false, note: `${statusLabel("expert")}. ${statusLabel("sharing")}: you send the brief yourself.` },
   ];
 }

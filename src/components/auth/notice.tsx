@@ -1,3 +1,4 @@
+import { CircleAlert, CircleCheck, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tones = {
@@ -6,19 +7,23 @@ const tones = {
   info: "border-border bg-muted text-foreground",
 } as const;
 
-/** Inline message. Errors use role="alert" so screen readers announce them. */
+const icons = { error: CircleAlert, success: CircleCheck, info: Info } as const;
+
+/** Inline message. An icon accompanies the colour, and errors use role="alert" so screen readers announce them. */
 export function Notice({
   tone,
   children,
   ...props
 }: { tone: keyof typeof tones } & React.ComponentProps<"div">) {
+  const Icon = icons[tone];
   return (
     <div
       role={tone === "error" ? "alert" : "status"}
-      className={cn("rounded-md border px-3 py-2.5 text-sm", tones[tone])}
+      className={cn("flex gap-2.5 rounded-lg border px-3 py-2.5 text-sm", tones[tone])}
       {...props}
     >
-      {children}
+      <Icon aria-hidden className="mt-0.5 size-4 shrink-0" />
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
