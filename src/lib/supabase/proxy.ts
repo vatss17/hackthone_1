@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 // The UX wireframes (fictional data, no backend) are public outside production only.
 const PREVIEW_PREFIX = process.env.NODE_ENV === "production" ? [] : ["/ux-preview"];
-const PUBLIC_PREFIXES = ["/login", "/signup", "/forgot-password", "/welcome", "/sample", "/auth/", ...PREVIEW_PREFIX];
+const PUBLIC_PREFIXES = ["/login", "/signup", "/forgot-password", "/welcome", "/sample", "/auth/", "/api/whatsapp", ...PREVIEW_PREFIX];
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
 
 function isPublic(pathname: string) {

@@ -33,6 +33,7 @@
     "test:atlas": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/atlas/*.test.mjs",
     "test:i18n": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/i18n/*.test.mjs",
     "test:ai-input": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/ai-input/*.test.mjs",
+    "test:whatsapp": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/whatsapp/*.test.mjs",
     "test:schemes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/schemes/*.test.mjs"
   },
   "dependencies": {
